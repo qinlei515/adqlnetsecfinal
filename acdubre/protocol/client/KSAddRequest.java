@@ -35,12 +35,14 @@ public class KSAddRequest
 		{
 			DataOutputStream toServer = new DataOutputStream(kserver.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(kserver.getInputStream());
+			BufferedReader stringFromServer = new BufferedReader(new InputStreamReader(kserver.getInputStream()));
 			KeyPairGenerator dhgen = KeyPairGenerator.getInstance("DH");
 			dhgen.initialize(specs);
 			KeyPair kpair = dhgen.generateKeyPair();
 			PublicKey pubKey = kpair.getPublic();
 			
 			byte[] encodedKey = pubKey.getEncoded();
+			//TODO: Add hash of server's public key for identification to req1
 			byte[] req1 = new byte[request.length + encodedKey.length];
 			for(int i = 0; i < request.length; i++)
 				req1[i] = request[i];
@@ -48,6 +50,7 @@ public class KSAddRequest
 				req1[i+request.length] = encodedKey[i];
 			toServer.write(req1);
 			// TODO: For simplicity, we assume we will receive two challenge from the server.
+			// TODO: Move to client.Common.java - this will be used elsewhere.
 			// Challenge 1: Prove we're here.
 			{
 				byte[] resp1 = getResponse(fromServer);
@@ -66,6 +69,14 @@ public class KSAddRequest
 			}
 			// Challenges are done. Resend original request.
 			toServer.write(req1);
+			String messageType = stringFromServer.readLine();
+			if(messageType.equals(utils.Constants.SERVER_KEY_RESET))
+			{
+				//TODO: Update the server's primary and secondary public keys.
+				//And resend the request yet again.
+			}			
+			byte[] signedDHKey = getResponse(fromServer);
+			byte[] auth = getResponse(fromServer);
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
@@ -77,6 +88,7 @@ public class KSAddRequest
 	
 	protected byte[] getResponse(DataInputStream fromServer) throws IOException
 	{
+		//TODO: Get the size of the response as the first x bytes of the reply, then allocate the response array.
 		byte[] response = new byte[DEFAULT_BUFFER];
 		int bytesRead = 0;
 		boolean active = true;
