@@ -99,6 +99,7 @@ public class ClientUI
 				}
 				if(set)
 				{
+					// Authenticate to key server
 					//TODO: Push the current keys to the key server.
 				}
 			}
