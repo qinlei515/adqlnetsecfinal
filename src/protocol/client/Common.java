@@ -1,4 +1,4 @@
-package protocol;
+package protocol.client;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -24,14 +24,13 @@ public class Common
 		BufferUtils.copy(resp2, hash, hash.length);
 		int sizeOfR = resp2[hash.length];
 		byte[] number = new byte[sizeOfR];
-		BufferUtils.copy(resp2, number, sizeOfR, hash.length+1);
+		BufferUtils.copy(resp2, number, sizeOfR, hash.length+1, 0);
 		Common.guessTheNumber(hash, number);
 		return number;
 	}
 	
 	public static byte[] getResponse(DataInputStream fromServer) throws IOException
 	{
-		//TODO: Get the size of the response as the first two bytes of the reply, then allocate the response array.
 		int responseSize = fromServer.read() * 256 + fromServer.read();
 		byte[] response = new byte[responseSize];
 		fromServer.read(response);
@@ -40,7 +39,7 @@ public class Common
 	
 	public static void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
 	{
-		MessageDigest md = MessageDigest.getInstance(utils.Constants.CHALLENGE_HASH);		
+		MessageDigest md = utils.Constants.challengeHash();		
 		md.update(given);
 		byte[] ourHash = md.digest();
 		boolean done = BufferUtils.equals(hash, ourHash);
