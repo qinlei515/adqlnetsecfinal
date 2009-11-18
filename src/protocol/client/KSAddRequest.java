@@ -14,7 +14,6 @@ import java.security.PublicKey;
 
 import javax.crypto.spec.DHParameterSpec;
 
-import protocol.Common;
 
 import utils.BufferUtils;
 
@@ -28,7 +27,7 @@ public class KSAddRequest
 	
 	public KSAddRequest(Socket ks) { this.kserver = ks; }
 	
-	public boolean doRequest(DHParameterSpec specs)
+	public boolean doRequest(DHParameterSpec ourSpecs)
 	{
 		try 
 		{
@@ -36,7 +35,7 @@ public class KSAddRequest
 			DataInputStream fromServer = new DataInputStream(kserver.getInputStream());
 			BufferedReader stringFromServer = new BufferedReader(new InputStreamReader(kserver.getInputStream()));
 			KeyPairGenerator dhgen = KeyPairGenerator.getInstance("DH");
-			dhgen.initialize(specs);
+			dhgen.initialize(ourSpecs);
 			KeyPair kpair = dhgen.generateKeyPair();
 			PublicKey pubKey = kpair.getPublic();
 			
