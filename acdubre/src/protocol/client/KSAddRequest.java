@@ -9,7 +9,6 @@ import java.net.Socket;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
@@ -50,23 +49,8 @@ public class KSAddRequest
 				req1[i+request.length] = encodedKey[i];
 			toServer.write(req1);
 			// TODO: For simplicity, we assume we will receive two challenge from the server.
-			// TODO: Move to client.Common.java - this will be used elsewhere.
-			// Challenge 1: Prove we're here.
-			{
-				byte[] resp1 = getResponse(fromServer);
-				toServer.write(resp1);
-			}
-			// Challenge 2: Guess-the-number
-			{
-				byte[] resp2 = getResponse(fromServer);
-				byte[] hash = new byte[utils.Constants.C_HASH_SIZE];
-				BufferUtils.copy(resp2, hash, hash.length);
-				int sizeOfR = resp2[hash.length];
-				byte[] number = new byte[sizeOfR];
-				BufferUtils.copy(resp2, number, sizeOfR, hash.length+1);
-				Common.guessTheNumber(hash, number);
-				toServer.write(number);
-			}
+			toServer.write(Common.handleChallenge1(fromServer));
+			toServer.write(Common.handleChallenge2(fromServer));
 			// Challenges are done. Resend original request.
 			toServer.write(req1);
 			String messageType = stringFromServer.readLine();
@@ -75,8 +59,8 @@ public class KSAddRequest
 				//TODO: Update the server's primary and secondary public keys.
 				//And resend the request yet again.
 			}			
-			byte[] signedDHKey = getResponse(fromServer);
-			byte[] auth = getResponse(fromServer);
+			byte[] signedDHKey = Common.getResponse(fromServer);
+			byte[] auth = Common.getResponse(fromServer);
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
@@ -86,28 +70,5 @@ public class KSAddRequest
 		return false;
 	}
 	
-	protected byte[] getResponse(DataInputStream fromServer) throws IOException
-	{
-		//TODO: Get the size of the response as the first x bytes of the reply, then allocate the response array.
-		byte[] response = new byte[DEFAULT_BUFFER];
-		int bytesRead = 0;
-		boolean active = true;
-		while(active)
-		{
-			if(bytesRead == response.length)
-			{
-				byte[] tempResponse = new byte[response.length];
-				BufferUtils.copy(response, tempResponse, response.length);
-				response = new byte[response.length * 2];
-				BufferUtils.copy(tempResponse, response, tempResponse.length);
-			}
-			fromServer.read(response, bytesRead, 1);
-			bytesRead++;
-			if(response[bytesRead-1] == 0 
-					&& response[bytesRead-2] == 0 
-					&& response[bytesRead-3] == 0)
-				active = false;
-		}
-		return response;
-	}
+	
 }
