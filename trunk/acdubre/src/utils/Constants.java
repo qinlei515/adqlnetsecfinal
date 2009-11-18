@@ -9,5 +9,5 @@ public class Constants
 	public static final String CHALLENGE_HASH = "SHA1";
 	public static final int C_HASH_SIZE = 40;
 
-	public static final String SERVER_KEY_RESET = "Server key reset request.";
+	public static final String SERVER_KEY_RESET = "SKRESET.";
 }
