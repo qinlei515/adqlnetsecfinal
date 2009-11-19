@@ -6,11 +6,12 @@ import java.io.IOException;
 import java.net.Socket;
 import java.security.MessageDigest;
 
-import utils.BufferUtils;
+import utils.*;
+import utils.kserver.*;
 
 public class KSCommon 
 {
-	private static MessageDigest md = utils.Constants.challengeHash();
+	private static MessageDigest md = Constants.challengeHash();
 	
 	public static boolean provideChallenge1(Socket client) throws IOException
 	{
@@ -28,7 +29,7 @@ public class KSCommon
 	{
 		byte[] cAddr = client.getInetAddress().getAddress();
 		md.reset();
-		md.update(utils.BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
+		md.update(utils.BufferUtils.concat(cAddr, KSConstants.C_1_SECRET));
 		return md.digest();
 	}
 	
