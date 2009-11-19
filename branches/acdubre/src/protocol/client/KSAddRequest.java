@@ -12,10 +12,10 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
-import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
 
-import utils.*;
+
+import utils.BufferUtils;
 
 public class KSAddRequest 
 {
@@ -34,10 +34,10 @@ public class KSAddRequest
 			DataOutputStream toServer = new DataOutputStream(kserver.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(kserver.getInputStream());
 			BufferedReader stringFromServer = new BufferedReader(new InputStreamReader(kserver.getInputStream()));
-			KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
-			dhGen.initialize(ourSpecs);
-			KeyPair kPair = dhGen.generateKeyPair();
-			PublicKey pubKey = kPair.getPublic();
+			KeyPairGenerator dhgen = KeyPairGenerator.getInstance("DH");
+			dhgen.initialize(ourSpecs);
+			KeyPair kpair = dhgen.generateKeyPair();
+			PublicKey pubKey = kpair.getPublic();
 			
 			byte[] encodedKey = pubKey.getEncoded();
 			//TODO: Add hash of server's public key for identification to req1
@@ -53,13 +53,13 @@ public class KSAddRequest
 			// Challenges are done. Resend original request.
 			toServer.write(req1);
 			String messageType = stringFromServer.readLine();
-			if(messageType.equals(Constants.SERVER_KEY_RESET))
+			if(messageType.equals(utils.Constants.SERVER_KEY_RESET))
 			{
 				//TODO: Update the server's primary and secondary public keys.
 				//And resend the request yet again.
 			}			
-			byte[] response = Common.getResponse(fromServer);
-			SecretKey sessionKey = Common.authenticateServerResponse(response, kPair);			
+			byte[] signedDHKey = Common.getResponse(fromServer);
+			byte[] auth = Common.getResponse(fromServer);
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
