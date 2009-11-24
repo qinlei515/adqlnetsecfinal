@@ -48,7 +48,7 @@ public class Common
 	
 	public static byte[] getResponse(DataInputStream fromServer) throws IOException
 	{
-		int responseSize = fromServer.read() * 256 + fromServer.read();
+		int responseSize = BufferUtils.translate(fromServer.read(), fromServer.read());
 		byte[] response = new byte[responseSize];
 		fromServer.read(response);
 		return response;
