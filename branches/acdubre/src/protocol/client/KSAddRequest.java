@@ -7,11 +7,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
 
@@ -19,13 +23,24 @@ import utils.*;
 
 public class KSAddRequest 
 {
-	public final byte[] request = "USER_ADD".getBytes();
-	public final int DEFAULT_BUFFER = 512;
-//	public enum STATE{NEW, REQUEST, CHALLENGE1, CHALLENGE2, ESTABLISHED, DONE};
 	Socket kserver;
-//	STATE state;
 	
-	public KSAddRequest(Socket ks) { this.kserver = ks; }
+	byte[] request;
+	
+	public KSAddRequest(Socket kserver, String userName, byte[] hash2Password, PublicKey pubKey, byte[] encryptedPrivateKey) 
+	{ 
+		this.kserver = kserver;
+		byte[] userNameBytes = userName.getBytes();
+		byte[] uNLength = BufferUtils.translate(userNameBytes.length);
+		byte[] pubKeyBytes = pubKey.getEncoded();
+		byte[] pubKLength = BufferUtils.translate(pubKeyBytes.length);
+		byte[] privKLength = BufferUtils.translate(encryptedPrivateKey.length);
+		
+		this.request = BufferUtils.concat(uNLength, userName.getBytes(),
+				hash2Password,
+				pubKLength, pubKeyBytes,
+				privKLength, encryptedPrivateKey);
+	}
 	
 	public boolean doRequest(DHParameterSpec ourSpecs)
 	{
@@ -33,38 +48,21 @@ public class KSAddRequest
 		{
 			DataOutputStream toServer = new DataOutputStream(kserver.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(kserver.getInputStream());
-			BufferedReader stringFromServer = new BufferedReader(new InputStreamReader(kserver.getInputStream()));
-			KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
-			dhGen.initialize(ourSpecs);
-			KeyPair kPair = dhGen.generateKeyPair();
-			PublicKey pubKey = kPair.getPublic();
+
+			SecretKey sessionKey = KSAuthenticate.authenticate(toServer, fromServer, ourSpecs);
+			Cipher c = Constants.sessionCipher();
+			c.init(Cipher.ENCRYPT_MODE, sessionKey);
+			byte[] iv = c.getIV();
+			byte[] encryptedResponse = c.doFinal(request);
+			byte[] respLength = BufferUtils.translate(iv.length + encryptedResponse.length);
+			toServer.write(BufferUtils.concat(respLength, iv, encryptedResponse));
 			
-			byte[] encodedKey = pubKey.getEncoded();
-			//TODO: Add hash of server's public key for identification to req1
-			byte[] req1 = new byte[request.length + encodedKey.length];
-			for(int i = 0; i < request.length; i++)
-				req1[i] = request[i];
-			for(int i = 0; i < encodedKey.length; i++)
-				req1[i+request.length] = encodedKey[i];
-			toServer.write(req1);
-			// TODO: For simplicity, we assume we will receive two challenge from the server.
-			toServer.write(Common.handleChallenge1(fromServer));
-			toServer.write(Common.handleChallenge2(fromServer));
-			// Challenges are done. Resend original request.
-			toServer.write(req1);
-			String messageType = stringFromServer.readLine();
-			if(messageType.equals(Constants.SERVER_KEY_RESET))
-			{
-				//TODO: Update the server's primary and secondary public keys.
-				//And resend the request yet again.
-			}			
-			byte[] response = Common.getResponse(fromServer);
-			SecretKey sessionKey = Common.authenticateServerResponse(response, kPair);			
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
-		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
-		// This catch should be unreachable.
-		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
+		// These catches should be unreachable.
+		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
+		catch (BadPaddingException e) { e.printStackTrace(); } 
 		// Return false if we escape the try.
 		return false;
 	}

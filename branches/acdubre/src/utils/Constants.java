@@ -1,15 +1,22 @@
 package utils;
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.text.SimpleDateFormat;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.DHParameterSpec;
 
 public class Constants 
 {
@@ -18,7 +25,20 @@ public class Constants
 	public static final int RSA_KEY_SIZE = 1024;
 	public static final int RSA_BLOCK_SIZE = 128;
 	
-	public static final String SESSION_KEY_ALG = "AES";
+	public static final String SESSION_KEY_ALG = "AES/CBC/ISO10126Padding";
+	public static Cipher SESSION_CIPHER;
+	
+	public static Cipher sessionCipher()
+	{
+		if(SESSION_CIPHER == null)
+		{
+			try { SESSION_CIPHER = Cipher.getInstance(SESSION_KEY_ALG); }
+			// Should be unreachable
+			catch(NoSuchAlgorithmException e) { e.printStackTrace(); } 
+			catch (NoSuchPaddingException e) { e.printStackTrace();	}
+		}
+		return SESSION_CIPHER;
+	}
 	
 	public static final String STRING_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat(STRING_DATE_FORMAT);
@@ -26,6 +46,7 @@ public class Constants
 	
 	public static final String CHALLENGE_HASH_ALG = "SHA1";
 	private static MessageDigest CHALLENGE_HASH;
+	public static final int C_HASH_SIZE = 40;
 	
 	public static MessageDigest challengeHash()
 	{
@@ -40,6 +61,7 @@ public class Constants
 	
 	public static final String DH_HASH_ALG = "SHA1";
 	private static MessageDigest DH_HASH;
+	public static final int DH_HASH_SIZE = 40;
 	
 	public static MessageDigest dhHash()
 	{
@@ -94,6 +116,9 @@ public class Constants
 				DataInputStream keyIn = new DataInputStream(keyInFile);
 				byte[] keyBytes = new byte[(int)keyFile.length()];
 				keyIn.read(keyBytes);
+				keyIn.close();
+				keyInFile.close();
+//				SERVER_PRIMARY_KEY = 
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file not found!"); } 
 			catch (IOException e) { e.printStackTrace(); }
@@ -101,7 +126,31 @@ public class Constants
 		return SERVER_PRIMARY_KEY;
 	}
 	
-	public static final int C_HASH_SIZE = 40;
+	private static DHParameterSpec DH_PARAMETERS;
+	private static final String DH_PARAMETERS_FILE = "dh.params";
+	
+	public static DHParameterSpec getDHParameters()
+	{
+		if(DH_PARAMETERS == null)
+		{
+			try
+			{
+				File paramFile = new File(DH_PARAMETERS_FILE);
+				FileInputStream paramInFile = new FileInputStream(paramFile);
+				InputStreamReader paramIn = new InputStreamReader(paramInFile);
+				BufferedReader paramReader = new BufferedReader(paramIn);
+				BigInteger p = new BigInteger(paramReader.readLine());
+				BigInteger g = new BigInteger(paramReader.readLine());
+				DH_PARAMETERS = new DHParameterSpec(p, g);
+				paramReader.close();
+				paramIn.close();
+				paramInFile.close();
+			}
+			catch(FileNotFoundException e) { System.err.println("Diffie-Hellman parameters file not found."); }
+			catch(IOException e) { e.printStackTrace(); }
+		}
+		return DH_PARAMETERS;
+	}
 
-	public static final String SERVER_KEY_RESET = "SKRESET.";
+	public static final byte[] SERVER_KEY_RESET = "SKRESET".getBytes();
 }
