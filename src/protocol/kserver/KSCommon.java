@@ -5,13 +5,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+
+import protocol.client.Common;
 
 import utils.BufferUtils;
+import utils.Constants;
 
 public class KSCommon 
 {
 	private static MessageDigest md = utils.Constants.challengeHash();
 	
+	//TODO: Redo this as UDP instead of TCP
 	public static boolean provideChallenge1(Socket client) throws IOException
 	{
 		DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
@@ -20,7 +25,7 @@ public class KSCommon
 			byte[] challenge1 = calculateChallenge1(client);
 			toClient.write(challenge1);
 		}
-		byte[] response1 = getResponse(fromClient);
+		byte[] response1 = Common.getResponseComponent(fromClient);
 		return BufferUtils.equals(response1, calculateChallenge1(client));
 	}
 	
@@ -28,15 +33,18 @@ public class KSCommon
 	{
 		byte[] cAddr = client.getInetAddress().getAddress();
 		md.reset();
-		md.update(utils.BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
+		md.update(BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
 		return md.digest();
 	}
 	
-	public static byte[] getResponse(DataInputStream fromClient) throws IOException
+	public static ArrayList<byte[]> createChallenge2(byte[] number)
 	{
-		int responseSize = fromClient.read() * 256 + fromClient.read();
-		byte[] response = new byte[responseSize];
-		fromClient.read(response);
-		return response;
+		ArrayList<byte[]> answer = new ArrayList<byte[]>();
+		answer.add(Constants.challengeHash().digest(number));
+		byte[] maskedNumber = new byte[number.length];
+		for(int i = number.length/2; i < number.length; i++)
+			maskedNumber[i] = 0;
+		answer.add(maskedNumber);
+		return answer;
 	}
 }

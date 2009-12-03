@@ -29,12 +29,18 @@ public class BufferUtils
 		return answer;		
 	}
 	
-	public static byte[] concat(byte[] a, byte[] b)
+	public static byte[] concat(byte[]... toConcat)
 	{
-		byte[] answer = new byte[a.length + b.length];
-		copy(a, answer, a.length);
-		println(answer);
-		copy(b, answer, b.length, 0, a.length);
+		int totalSize = 0;
+		for(byte[] b : toConcat)
+			totalSize += b.length;
+		byte[] answer = new byte[totalSize];
+		int pos = 0;
+		for(byte[] b : toConcat)
+		{
+			copy(answer, b, b.length, 0, pos);
+			pos += b.length;
+		}
 		return answer;
 	}
 	
@@ -47,5 +53,24 @@ public class BufferUtils
 	{
 		print(a);
 		System.out.println();
+	}
+	
+	public static byte[] translate(Integer i)
+	{
+		byte[] answer = new byte[2];
+		answer[0] = new Integer(i % 256).byteValue();
+		answer[1] = new Integer(i / 256).byteValue();
+		return answer;
+	}
+	public static int translate(int high, int low) { return high * 256 + low; }
+	
+	// Generate a random number as an array of bytes.
+	public static byte[] random(int byteSize)
+	{
+		byte[] answer = new byte[byteSize];
+		// TODO: Is Math.random() cryptographically secure as a RNG?
+		for(int i = 0; i < byteSize; i++)
+			answer[i] = (byte)(Math.random() * Byte.MAX_VALUE);
+		return answer;
 	}
 }
