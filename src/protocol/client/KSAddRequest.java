@@ -42,14 +42,14 @@ public class KSAddRequest
 				privKLength, encryptedPrivateKey);
 	}
 	
-	public boolean doRequest(DHParameterSpec ourSpecs)
+	public boolean doRequest()
 	{
 		try 
 		{
 			DataOutputStream toServer = new DataOutputStream(kserver.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(kserver.getInputStream());
 
-			SecretKey sessionKey = KSAuthenticate.authenticate(toServer, fromServer, ourSpecs);
+			SecretKey sessionKey = KSAuthenticate.authenticate(toServer, fromServer);
 			Cipher c = Constants.sessionCipher();
 			c.init(Cipher.ENCRYPT_MODE, sessionKey);
 			byte[] iv = c.getIV();

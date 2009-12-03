@@ -12,6 +12,8 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 
 import javax.crypto.Cipher;
@@ -24,6 +26,8 @@ public class Constants
 	public static final int KEY_SERVER_PORT = 6473;
 	public static final int RSA_KEY_SIZE = 1024;
 	public static final int RSA_BLOCK_SIZE = 128;
+	
+	public static final int CHALLENGE_BYTESIZE = 4;
 	
 	public static final String SESSION_KEY_ALG = "AES/CBC/ISO10126Padding";
 	public static Cipher SESSION_CIPHER;
@@ -102,8 +106,16 @@ public class Constants
 	}
 	
 	private static RSAPublicKey SERVER_PRIMARY_KEY;
+	private static byte[] SERVER_KEY_HASH;
 	private static final String SERVER_PRIMARY_KEY_FILE = "serverPrimary.key";
 	public static final String SERVER_SIGN_MODE = "RSA";
+	
+	public static byte[] getServerKeyHash()
+	{
+		if(SERVER_KEY_HASH == null)
+			SERVER_KEY_HASH = getServerPrimaryKey().getEncoded();
+		return SERVER_KEY_HASH;
+	}
 	
 	public static RSAPublicKey getServerPrimaryKey()
 	{
@@ -118,10 +130,13 @@ public class Constants
 				keyIn.read(keyBytes);
 				keyIn.close();
 				keyInFile.close();
-//				SERVER_PRIMARY_KEY = 
+				X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+				SERVER_PRIMARY_KEY = (RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(keySpec);
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file not found!"); } 
-			catch (IOException e) { e.printStackTrace(); }
+			catch (IOException e) { e.printStackTrace(); } 
+			catch (InvalidKeySpecException e) { e.printStackTrace(); } 
+			catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		}
 		return SERVER_PRIMARY_KEY;
 	}
