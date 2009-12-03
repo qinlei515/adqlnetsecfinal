@@ -63,4 +63,14 @@ public class BufferUtils
 		return answer;
 	}
 	public static int translate(int high, int low) { return high * 256 + low; }
+	
+	// Generate a random number as an array of bytes.
+	public static byte[] random(int byteSize)
+	{
+		byte[] answer = new byte[byteSize];
+		// TODO: Is Math.random() cryptographically secure as a RNG?
+		for(int i = 0; i < byteSize; i++)
+			answer[i] = (byte)(Math.random() * Byte.MAX_VALUE);
+		return answer;
+	}
 }
