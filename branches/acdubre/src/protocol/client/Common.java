@@ -9,11 +9,12 @@ import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Calendar;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -22,10 +23,10 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import utils.BufferUtils;
 import utils.Constants;
-import utils.ServerEncryption;
 
 public class Common 
 {
@@ -43,10 +44,10 @@ public class Common
 		byte[] number = new byte[resp.get(1).length];
 		BufferUtils.copy(resp.get(1), number, number.length);
 		Common.guessTheNumber(resp.get(0), number);
-		return number;
+		return createMessage(number);
 	}
 	
-	public static byte[] getResponseComponent(DataInputStream from) throws IOException
+	protected static byte[] getResponseComponent(DataInputStream from) throws IOException
 	{
 		int responseSize = BufferUtils.translate(from.read(), from.read());
 		byte[] response = new byte[responseSize];
@@ -59,7 +60,9 @@ public class Common
 		int numComponents = BufferUtils.translate(from.read(), from.read());
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		for(int i = 0; i < numComponents; i++)
+		{
 			answer.add(getResponseComponent(from));
+		}
 		return answer;
 	}
 	
@@ -68,10 +71,11 @@ public class Common
 		int messageLength = 0;
 		for(int i = 0; i < components.length; i++)
 			messageLength += (components[i].length + 2);
+		
 		byte[] answer = new byte[messageLength+2];
 		
 		// Start with the length of the message
-		BufferUtils.copy(BufferUtils.translate(messageLength), answer, 2);
+		BufferUtils.copy(BufferUtils.translate(components.length), answer, 2);
 		
 		int pos = 2;
 		for(int i = 0; i < components.length; i++)
@@ -88,7 +92,26 @@ public class Common
 	
 	public static byte[] createMessage(ArrayList<byte[]> components)
 	{
-		return createMessage((byte[][])components.toArray());
+		int messageLength = 0;
+		for(int i = 0; i < components.size(); i++)
+			messageLength += (components.get(i).length + 2);
+		
+		byte[] answer = new byte[messageLength+2];
+		
+		// Start with the length of the message
+		BufferUtils.copy(BufferUtils.translate(components.size()), answer, 2);
+		
+		int pos = 2;
+		for(int i = 0; i < components.size(); i++)
+		{
+			// Start each component with the length of that component
+			BufferUtils.copy(BufferUtils.translate(components.get(i).length), answer, 2, 0, pos);
+			pos += 2;
+			// Add the component itself
+			BufferUtils.copy(components.get(i), answer, components.get(i).length, 0, pos);
+			pos += components.get(i).length;
+		}
+		return answer;
 	}
 	
 	public static void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
@@ -118,7 +141,7 @@ public class Common
 		number[i]++;
 	}
 	
-	public static SecretKey authenticateServerResponse(ArrayList<byte[]> response, KeyPair ourKey)
+	public static SecretKey authenticateServerResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey serverKey)
 	{
 		byte[] signedDHKeyHash = response.get(0);
 		byte[] dhKeyBytes = response.get(1);
@@ -127,11 +150,7 @@ public class Common
 		
 		// Authenticate the message.
 		// Check the signature.
-		byte[] unsignedHash = 
-			ServerEncryption.unsign(signedDHKeyHash);
-		byte[] checkHash = Constants.dhHash().digest(dhKeyBytes);
-
-		if(!BufferUtils.equals(unsignedHash, checkHash))
+		if(!verify(signedDHKeyHash, dhKeyBytes, serverKey))
 		{
 			System.err.println("Server key response did not match hash.");
 			return null;
@@ -149,8 +168,13 @@ public class Common
 			ka.init(ourKey.getPrivate());
 			ka.doPhase(serverDHKey, true);
 			
+			// Generates a 256-bit secret by default.
 			SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
-			Cipher authCipher = Cipher.getInstance(Constants.SESSION_KEY_ALG);
+			// Simplify it to a 128-bit key for compatibility.
+			// TODO: Is it secure to grab the first 16 bytes?
+			sessionKey = new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+			
+			Cipher authCipher = Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
 			authCipher.init(Cipher.DECRYPT_MODE, sessionKey, new IvParameterSpec(iv));
 			byte[] authCheck = authCipher.doFinal(auth);
 			byte[] ourKeyBytes = ourKey.getPublic().getEncoded();
@@ -170,4 +194,21 @@ public class Common
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); } 
 		return null;
 	}
+	
+	public static boolean verify(byte[] signed, byte[] expected, RSAPublicKey key)
+    {
+            try
+            {
+            	Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
+            	sig.initVerify(key);
+            	sig.update(expected);
+            	return sig.verify(signed);
+            }
+            // Should be unreachable.
+            catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
+            //TODO: Handle corrupted etc. key files.
+            catch (InvalidKeyException e) { e.printStackTrace(); } 
+            catch (SignatureException e) { e.printStackTrace(); } 
+            return false;
+    }
 }

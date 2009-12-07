@@ -7,6 +7,7 @@ public class ClientMain
 	public static void main(String[] args)
 	{
 		ClientUser c = processCommandLine(args);
+		c.initialize();
 		ClientUI ui = new ClientUI(c);
 		ui.run();
 	}
@@ -25,12 +26,16 @@ public class ClientMain
 			else if(args[i].equals("-u") || args[i].equals("--user"))
 			{
 				i++;
-				if(i < args.length) toReturn.setUserID(args[i]);
+				if(i < args.length) 
+				{
+					toReturn.setUserID(args[i]);
+					System.out.println("User set to: " + args[i]);
+				}
 			}
 			else if(args[i].equals("-cs") || args[i].equals("--chat-server"))
 			{
 				i++;
-				if(i < args.length) toReturn.setChatServerIP(args[i]);
+				if(i < args.length) toReturn.setChatServer(args[i]);
 			}
 			else if(args[i].equals("-ks") || args[i].equals("--key-server"))
 			{
@@ -39,9 +44,11 @@ public class ClientMain
 			}
 			else
 			{
+				System.out.println(args[i] + ": not recognized.");
 				printUsage(System.err);
 				System.exit(-1);
 			}
+			i++;
 		}
 		return toReturn;
 	}
