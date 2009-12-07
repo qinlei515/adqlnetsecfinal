@@ -62,7 +62,7 @@ public class BufferUtils
 		answer[1] = new Integer(i / 256).byteValue();
 		return answer;
 	}
-	public static int translate(int high, int low) { return high * 256 + low; }
+	public static int translate(int low, int high) { return high * 256 + low; }
 	
 	// Generate a random number as an array of bytes.
 	public static byte[] random(int byteSize)
