@@ -2,9 +2,9 @@ package utils.server;
 
 import java.net.Socket;
 
-import javax.crypto.SecretKey;
+import javax.crypto.Cipher;
 
 public interface ServerBehavior 
 {
-	public void handleConnection(SecretKey sessionKey, Socket connection);
+	public void handleConnection(Cipher sessionCipher, Socket connection);
 }

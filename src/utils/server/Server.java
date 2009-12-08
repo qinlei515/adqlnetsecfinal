@@ -140,7 +140,7 @@ public class Server
         return null;
     }
 	
-	public SecretKey authenticate(Socket client)
+	public Cipher authenticate(Socket client)
 	{
 		try 
 		{
@@ -188,14 +188,14 @@ public class Server
 			byte[] pubKeyBytes = kPair.getPublic().getEncoded();
 			byte[] signedHash = sign(pubKeyBytes);
 			
-			Cipher authCipher = 
+			Cipher sessionCipher = 
 				Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
-			authCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
-			byte[] iv = authCipher.getIV();
-			byte[] auth = authCipher.doFinal(clientKeyBytes);
+			sessionCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
+			byte[] iv = sessionCipher.getIV();
+			byte[] auth = sessionCipher.doFinal(clientKeyBytes);
 			toClient.write(Common.createMessage(signedHash, pubKeyBytes, iv, auth));
 			
-			return sessionKey;
+			return sessionCipher;
 		}
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
