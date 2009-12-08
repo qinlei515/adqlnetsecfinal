@@ -3,7 +3,7 @@ package utils.server;
 import java.io.IOException;
 import java.net.Socket;
 
-import javax.crypto.SecretKey;
+import javax.crypto.Cipher;
 
 public class ConnectionHandler implements Runnable
 {
@@ -20,8 +20,8 @@ public class ConnectionHandler implements Runnable
 
 	public void run() 
 	{
-		SecretKey sessionKey = server.authenticate(connection);
-		if(sessionKey != null) server.getBehavior().handleConnection(sessionKey, connection);
+		Cipher sessionCipher = server.authenticate(connection);
+		if(sessionCipher != null) server.getBehavior().handleConnection(sessionCipher, connection);
 		try { connection.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
 	}
