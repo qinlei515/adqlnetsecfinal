@@ -4,6 +4,8 @@ import java.net.Socket;
 
 import javax.crypto.Cipher;
 
+import utils.CipherPair;
+
 public interface Protocol 
 {
 	/**
@@ -13,5 +15,5 @@ public interface Protocol
 	 * @param sessionCipher The cipher being used.
 	 * @return Whether the request completed successfully.
 	 */
-	public boolean run(Socket connection, Cipher sessionCipher);
+	public boolean run(Socket connection, CipherPair sessionCipher);
 }

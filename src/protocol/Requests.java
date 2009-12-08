@@ -5,6 +5,7 @@ public class Requests
 	// Requests common to both servers, though the results differ.
 	public static final byte[] ADD = "ADD".getBytes();
 	public static final byte[] UPDATE = "UPDATE".getBytes();
+	public static final byte[] CONFIRM = "CONFIRM".getBytes();
 
 	// Key server specific requests.
 	public static final byte[] PUBLIC = "PUBLIC".getBytes();

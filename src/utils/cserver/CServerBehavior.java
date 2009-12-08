@@ -9,7 +9,6 @@ import javax.crypto.Cipher;
 
 import protocol.Protocol;
 import protocol.Requests;
-import protocol.client.Common;
 import protocol.server.BadRequest;
 import protocol.server.CSAdd;
 import protocol.server.CSLogOff;
@@ -17,11 +16,13 @@ import protocol.server.CSLogOn;
 import protocol.server.CSUpdate;
 
 import utils.BufferUtils;
+import utils.CipherPair;
+import utils.Common;
 import utils.server.ServerBehavior;
 
 public class CServerBehavior implements ServerBehavior 
 {
-	public void handleConnection(Cipher sessionCipher, Socket connection) 
+	public void handleConnection(CipherPair sessionCipher, Socket connection) 
 	{
 		try
 		{

@@ -9,22 +9,39 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
-import protocol.client.Common;
+import protocol.Protocol;
+import protocol.client.KSAddRequest;
 
+
+import sun.security.rsa.RSAKeyPairGenerator;
 import utils.BufferUtils;
+import utils.CipherPair;
+import utils.Common;
 import utils.Constants;
 
 public class ClientUser 
@@ -39,6 +56,8 @@ public class ClientUser
 		setChatServer(DEFAULT_CHAT_SERVER);
 		setKeyServer(DEFAULT_KEY_SERVER);
 	}
+	
+	protected String password;
 	
 	protected String userID;
 	
@@ -104,11 +123,9 @@ public class ClientUser
 
 	protected RSAPublicKey publicKey;	
 	public RSAPublicKey getPublicKey() { return publicKey; }
-	public void setPublicKey(PublicKey key) { publicKey = (RSAPublicKey)key; }
 
 	protected RSAPrivateKey privateKey;	
 	public RSAPrivateKey getPrivateKey() { return privateKey; }
-	public void setPrivateKey(PrivateKey key) { privateKey = (RSAPrivateKey)key; }
 	
 	/**
 	 * Get the username if it hasn't been entered.
@@ -137,27 +154,59 @@ public class ClientUser
 //		catch(IOException e) { e.printStackTrace(); }
 		if("y".equals(answer))
 		{
+			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			if(kSessionCipher != null) System.out.println("Key server session established.");
 			
-			SecretKey kSessionKey = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
-			if(kSessionKey != null) System.out.println("Key server session established.");
 			//TODO: Retrieve keys from key server
 			//TODO: Log in to chat server
-			SecretKey cSessionKey = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
-			if(cSessionKey != null) System.out.println("Chat server session key established.");
+			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 		}
 		else
 		{
-			SecretKey sessionKey = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
-			if(sessionKey != null) System.out.println("Key server session established.");
+			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			if(kSessionCipher != null) System.out.println("Key server session established.");
+			else return;
+			generateKeys();
+			promptForPassword();
+			Protocol p = new KSAddRequest(userID, getPublicKey(), getPrivateKey(), password);
+			boolean addSuccess = p.run(getKeyServer(), kSessionCipher);
+			if(addSuccess) { System.out.println("User successfully added.");
+			
+			}
 			//TODO: Generate keys
 			//TODO: Add user to key server
 			//TODO: Add + log in to chat server
-			SecretKey cSessionKey = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
-			if(cSessionKey != null) System.out.println("Chat server session key established.");
+			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 		}
 	}
 	
-	public SecretKey authenticate(Socket server, RSAPublicKey serverKey)
+	protected void promptForPassword()
+	{
+		BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+		boolean validPassword = false;
+		while(!validPassword)
+		{
+			System.out.println("Please enter your password:");
+			try { password = input.readLine(); } 
+			catch (IOException e) { e.printStackTrace(); }
+			// TODO: Add password validity tests.
+			validPassword = true;
+		}
+	}
+	
+	protected void generateKeys()
+	{
+		RSAKeyPairGenerator gen = new RSAKeyPairGenerator();
+		gen.initialize(Constants.RSA_KEY_SIZE, new SecureRandom());
+		KeyPair kp = gen.generateKeyPair();
+		
+		publicKey = (RSAPublicKey)kp.getPublic();
+		privateKey = (RSAPrivateKey)kp.getPrivate();
+	}
+	
+	public CipherPair authenticate(Socket server, RSAPublicKey serverKey)
 	{
 		try 
 		{
@@ -178,14 +227,69 @@ public class ClientUser
 			{
 				//TODO: Update the server's primary and secondary public keys.
 			}			
-			SecretKey sessionKey = Common.authenticateServerResponse(resp, kPair, serverKey);
-			return sessionKey;
+			CipherPair sessionCipher = authenticateServerResponse(resp, kPair, serverKey);
+			return sessionCipher;
 		}
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
 		// Should be unreachable.
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		// Return null if we escape the try
+		return null;
+	}
+	
+	public CipherPair authenticateServerResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey serverKey)
+	{
+		byte[] signedDHKeyHash = response.get(0);
+		byte[] dhKeyBytes = response.get(1);
+		byte[] iv = response.get(2);
+		byte[] auth = response.get(3);
+		
+		// Authenticate the message.
+		// Check the signature.
+		if(!Common.verify(signedDHKeyHash, dhKeyBytes, serverKey))
+		{
+			System.err.println("Server key response did not match hash.");
+			return null;
+		}
+
+		// Check the freshness.
+		// Generate the session key.
+		try 
+		{
+			X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(dhKeyBytes);
+	        KeyFactory keyFact = KeyFactory.getInstance("DH");
+			PublicKey serverDHKey = keyFact.generatePublic(x509KeySpec);
+			
+			KeyAgreement ka = KeyAgreement.getInstance("DH");
+			ka.init(ourKey.getPrivate());
+			ka.doPhase(serverDHKey, true);
+			
+			// Generates a 256-bit secret by default.
+			SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
+			// Simplify it to a 128-bit key for compatibility.
+			// TODO: Is it secure to grab the first 16 bytes?
+			sessionKey = 
+				new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+			
+			CipherPair sessionCipher = 
+				new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+			
+			sessionCipher.initDecrypt(iv);
+			byte[] authCheck = sessionCipher.decrypt.doFinal(auth);
+			byte[] ourKeyBytes = ourKey.getPublic().getEncoded();
+			if(!BufferUtils.equals(ourKeyBytes, authCheck))
+			{
+				System.err.println("Server authentication response did not match our key.");
+				return null;
+			}
+			return sessionCipher;
+		} 
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
+		catch (InvalidKeySpecException e) { e.printStackTrace(); } 
+		catch (InvalidKeyException e) { e.printStackTrace(); } 
+		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
+		catch (BadPaddingException e) { e.printStackTrace(); } 
 		return null;
 	}
 }

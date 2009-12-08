@@ -26,16 +26,15 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyAgreement;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import protocol.client.Common;
 
 import utils.BufferUtils;
+import utils.CipherPair;
+import utils.Common;
 import utils.Constants;
 
 /**
@@ -140,7 +139,7 @@ public class Server
         return null;
     }
 	
-	public Cipher authenticate(Socket client)
+	public CipherPair authenticate(Socket client)
 	{
 		try 
 		{
@@ -188,13 +187,13 @@ public class Server
 			byte[] pubKeyBytes = kPair.getPublic().getEncoded();
 			byte[] signedHash = sign(pubKeyBytes);
 			
-			Cipher sessionCipher = 
-				Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
-			sessionCipher.init(Cipher.ENCRYPT_MODE, sessionKey);
-			byte[] iv = sessionCipher.getIV();
-			byte[] auth = sessionCipher.doFinal(clientKeyBytes);
+			CipherPair sessionCipher = 
+				new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+			sessionCipher.initEncrypt();
+			byte[] iv = sessionCipher.encrypt.getIV();
+			byte[] auth = sessionCipher.encrypt.doFinal(clientKeyBytes);
 			toClient.write(Common.createMessage(signedHash, pubKeyBytes, iv, auth));
-			
+
 			return sessionCipher;
 		}
 		catch (IOException e) { e.printStackTrace(); } 
@@ -206,12 +205,10 @@ public class Server
 		catch (InvalidKeyException e) { e.printStackTrace(); } 
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
 		catch (BadPaddingException e) { e.printStackTrace(); }  
-		catch (NoSuchPaddingException e) { e.printStackTrace();	}
 		// Return null if we escape the try
 		return null;
 	}
 	
-	private static MessageDigest md = utils.Constants.challengeHash();
 	
 	//TODO: Redo this as UDP instead of TCP
 	public boolean provideChallenge1(Socket client) throws IOException
@@ -229,15 +226,26 @@ public class Server
 	protected byte[] calculateChallenge1(Socket client)
 	{
 		byte[] cAddr = client.getInetAddress().getAddress();
-		md.reset();
-		md.update(BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
-		return md.digest();
+		MessageDigest md;
+		try 
+		{
+			md = MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG);
+			md.update(BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
+			return md.digest();
+		} 
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		return null;
 	}
 	
 	public ArrayList<byte[]> createChallenge(byte[] number)
 	{
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
-		answer.add(Constants.challengeHash().digest(number));
+		try
+		{
+			answer.add(MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG).digest(number));
+		}
+		catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
+		
 		byte[] maskedNumber = new byte[number.length];
 		for(int i = 0; i < number.length/2; i++)
 			maskedNumber[i] = 0;

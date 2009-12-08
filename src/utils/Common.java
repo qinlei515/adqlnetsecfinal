@@ -1,4 +1,4 @@
-package protocol.client;
+package utils;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -25,8 +25,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import utils.BufferUtils;
-import utils.Constants;
 
 public class Common 
 {
@@ -58,10 +56,27 @@ public class Common
 	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException
 	{
 		int numComponents = BufferUtils.translate(from.read(), from.read());
+		System.out.println(numComponents);
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		for(int i = 0; i < numComponents; i++)
 		{
 			answer.add(getResponseComponent(from));
+		}
+		return answer;
+	}
+	
+	public static ArrayList<byte[]> splitResponse(byte[] resp)
+	{
+		int numComponents = BufferUtils.translate(resp[0], resp[1]);
+		ArrayList<byte[]> answer = new ArrayList<byte[]>();
+		int pos = 2;
+		for(int i = 0; i < numComponents; i++)
+		{
+			byte[] next = new byte[BufferUtils.translate(resp[pos], resp[pos+1])];
+			pos += 2;
+			BufferUtils.copy(resp, next, next.length, pos, 0);
+			pos += next.length;
+			answer.add(next);
 		}
 		return answer;
 	}
@@ -116,7 +131,7 @@ public class Common
 	
 	public static void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
 	{
-		MessageDigest md = utils.Constants.challengeHash();		
+		MessageDigest md = MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG);
 		md.update(given);
 		byte[] ourHash = md.digest();
 		boolean done = BufferUtils.equals(hash, ourHash);
@@ -139,60 +154,6 @@ public class Common
 			i++;
 		}
 		number[i]++;
-	}
-	
-	public static SecretKey authenticateServerResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey serverKey)
-	{
-		byte[] signedDHKeyHash = response.get(0);
-		byte[] dhKeyBytes = response.get(1);
-		byte[] iv = response.get(2);
-		byte[] auth = response.get(3);
-		
-		// Authenticate the message.
-		// Check the signature.
-		if(!verify(signedDHKeyHash, dhKeyBytes, serverKey))
-		{
-			System.err.println("Server key response did not match hash.");
-			return null;
-		}
-
-		// Check the freshness.
-		// Generate the session key.
-		try 
-		{
-			X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(dhKeyBytes);
-	        KeyFactory keyFact = KeyFactory.getInstance("DH");
-			PublicKey serverDHKey = keyFact.generatePublic(x509KeySpec);
-			
-			KeyAgreement ka = KeyAgreement.getInstance("DH");
-			ka.init(ourKey.getPrivate());
-			ka.doPhase(serverDHKey, true);
-			
-			// Generates a 256-bit secret by default.
-			SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
-			// Simplify it to a 128-bit key for compatibility.
-			// TODO: Is it secure to grab the first 16 bytes?
-			sessionKey = new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
-			
-			Cipher authCipher = Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
-			authCipher.init(Cipher.DECRYPT_MODE, sessionKey, new IvParameterSpec(iv));
-			byte[] authCheck = authCipher.doFinal(auth);
-			byte[] ourKeyBytes = ourKey.getPublic().getEncoded();
-			if(!BufferUtils.equals(ourKeyBytes, authCheck))
-			{
-				System.err.println("Server authentication response did not match our key.");
-				return null;
-			}
-			return sessionKey;
-		} 
-		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
-		catch (InvalidKeySpecException e) { e.printStackTrace(); } 
-		catch (InvalidKeyException e) { e.printStackTrace(); } 
-		catch (NoSuchPaddingException e) { e.printStackTrace(); } 
-		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
-		catch (BadPaddingException e) { e.printStackTrace(); } 
-		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); } 
-		return null;
 	}
 	
 	public static boolean verify(byte[] signed, byte[] expected, RSAPublicKey key)

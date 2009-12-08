@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -56,7 +57,11 @@ public class ServerSettings
 		this.port = port;
 		this.ipAddress = ip;
 		this.primary = primary;
-		this.primaryKeyHash = Constants.dhHash().digest(primary.getEncoded());
+		try 
+		{
+			this.primaryKeyHash = MessageDigest.getInstance(Constants.DH_HASH_ALG).digest(primary.getEncoded());
+		} 
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		this.secondary = secondary;
 	}
 	
@@ -77,7 +82,7 @@ public class ServerSettings
 				keyInFile.close();
 				X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
 				this.primary = (RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(keySpec);
-				this.primaryKeyHash = Constants.dhHash().digest(primary.getEncoded());
+				this.primaryKeyHash = MessageDigest.getInstance(Constants.DH_HASH_ALG).digest(primary.getEncoded());
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file: " + primaryFile + " not found."); }
 			try
