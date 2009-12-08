@@ -3,7 +3,7 @@ package utils.server;
 import java.io.IOException;
 import java.net.Socket;
 
-import javax.crypto.Cipher;
+import utils.CipherPair;
 
 public class ConnectionHandler implements Runnable
 {
@@ -20,7 +20,7 @@ public class ConnectionHandler implements Runnable
 
 	public void run() 
 	{
-		Cipher sessionCipher = server.authenticate(connection);
+		CipherPair sessionCipher = server.authenticate(connection);
 		if(sessionCipher != null) server.getBehavior().handleConnection(sessionCipher, connection);
 		try { connection.close(); } 
 		catch (IOException e) { e.printStackTrace(); }

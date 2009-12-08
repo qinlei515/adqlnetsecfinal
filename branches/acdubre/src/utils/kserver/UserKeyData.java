@@ -9,18 +9,26 @@ public class UserKeyData
 {
 	protected byte[] pwdSalt;
 	public byte[] getSalt() { return pwdSalt; }
-	protected byte[] pwd3Hash;
-	public byte[] getPwdHash() { return pwd3Hash; }
-	protected RSAPublicKey publicKey;
-	public RSAPublicKey getPublicKey() { return publicKey; }
+	
+	protected byte[] pwd2Hash;
+	public byte[] getPwdHash() { return pwd2Hash; }
+	
+	protected byte[] publicKey;
+	public byte[] getPublicKey() { return publicKey; }
+	
 	protected byte[] encryptedPrivateKeyBytes;
 	public byte[] getPrivKeyBytes() { return encryptedPrivateKeyBytes; }
 	
-	public UserKeyData(byte[] salt, byte[] pwd3Hash, RSAPublicKey key, byte[] encrPrivKeyBytes)
+	public UserKeyData(byte[] salt, byte[] pwd2Hash, RSAPublicKey key, byte[] encrPrivKeyBytes)
+	{
+		this(salt, pwd2Hash, key.getEncoded(), encrPrivKeyBytes);
+	}
+	
+	public UserKeyData(byte[] salt, byte[] pwd2Hash, byte[] rsaKey, byte[] encrPrivKeyBytes)
 	{
 		this.pwdSalt = salt;
-		this.pwd3Hash = pwd3Hash;
-		this.publicKey = key;
+		this.pwd2Hash = pwd2Hash;
+		this.publicKey = rsaKey;
 		this.encryptedPrivateKeyBytes = encrPrivKeyBytes;
 	}
 }

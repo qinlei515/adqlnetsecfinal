@@ -4,7 +4,9 @@ import java.net.Socket;
 
 import javax.crypto.Cipher;
 
+import utils.CipherPair;
+
 public interface ServerBehavior 
 {
-	public void handleConnection(Cipher sessionCipher, Socket connection);
+	public void handleConnection(CipherPair sessionCipher, Socket connection);
 }

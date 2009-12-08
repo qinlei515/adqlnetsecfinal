@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.security.KeyFactory;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -45,37 +44,11 @@ public class Constants
 	}
 	
 	public static final String SIGNATURE_ALG = "SHA1withRSA";
+	public static final String HMAC_SHA1_ALG = "HmacSHA1";
 	
 	public static final String CHALLENGE_HASH_ALG = "SHA1";
-	private static MessageDigest CHALLENGE_HASH;
-	public static final int C_HASH_SIZE = 40;
-	
-	public static MessageDigest challengeHash()
-	{
-		if(CHALLENGE_HASH == null)
-		{
-			try { CHALLENGE_HASH = MessageDigest.getInstance(CHALLENGE_HASH_ALG); } 
-			// Should be unreachable.
-			catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
-		}
-		return CHALLENGE_HASH;
-	}
-	
+	public static final String PWD_HASH_ALGORITHM = "SHA1";
 	public static final String DH_HASH_ALG = "SHA1";
-	private static MessageDigest DH_HASH;
-	public static final int DH_HASH_SIZE = 40;
-	
-	public static MessageDigest dhHash()
-	{
-		if(DH_HASH == null)
-		{
-			try { DH_HASH = MessageDigest.getInstance(DH_HASH_ALG); } 
-			// Should be unreachable.
-			catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
-		}
-		return DH_HASH;
-	}
-	
 	
 	private static KeyFactory RSA_KEY_FACTORY;
 	

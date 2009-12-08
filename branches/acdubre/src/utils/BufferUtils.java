@@ -38,7 +38,7 @@ public class BufferUtils
 		int pos = 0;
 		for(byte[] b : toConcat)
 		{
-			copy(answer, b, b.length, 0, pos);
+			copy(b, answer, b.length, 0, pos);
 			pos += b.length;
 		}
 		return answer;
@@ -62,7 +62,27 @@ public class BufferUtils
 		answer[1] = new Integer(i / 256).byteValue();
 		return answer;
 	}
-	public static int translate(int low, int high) { return high * 256 + low; }
+	public static int translate(int low, int high) 
+	{
+		// Note: Java uses signed bytes.
+		low = getPositive(low);
+		high = getPositive(high);
+		return high * 256 + low; 
+	}
+	
+	private static int getPositive(int signedByte)
+	{
+		if(signedByte < 0) signedByte+=256;
+		return signedByte;
+	}
+	
+	public static String translateString(byte[] string)
+	{
+		String answer = "";
+		for(byte b : string)
+			answer += (char)b;		
+		return answer;
+	}
 	
 	// Generate a random number as an array of bytes.
 	public static byte[] random(int byteSize)
