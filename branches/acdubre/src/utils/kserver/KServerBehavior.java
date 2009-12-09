@@ -69,7 +69,7 @@ public class KServerBehavior implements ServerBehavior
 			}
 			else if(BufferUtils.equals(request.get(0), Requests.PUBLIC))
 			{
-				p = new KSPublic();
+				p = new KSPublic(request.get(1), server);
 			}
 			else if(BufferUtils.equals(request.get(0), Requests.PRIVATE))
 			{
