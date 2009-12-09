@@ -3,6 +3,7 @@ package utils.kserver;
 import java.util.Map;
 import java.util.TreeMap;
 
+import utils.BufferUtils;
 import utils.Constants;
 import utils.server.Server;
 
@@ -19,6 +20,23 @@ public class KServer extends Server
 			return false;
 		users.put(name, data);
 		return true;
+	}
+	public byte[] getSalt(String name)
+	{
+		UserKeyData data = users.get(name);
+		if(data == null) return null;
+		return data.getSalt();
+	}
+	public byte[] getPrivate(String name, byte[] pwd2Hash)
+	{
+		UserKeyData user = users.get(name);
+
+		if(BufferUtils.equals(user.getPwdHash(), pwd2Hash))
+		{
+			return user.getPrivKeyBytes();
+		}
+		System.err.println("User's password does not match.");
+		return null;
 	}
 	
 	public byte[] getPubKey(String name) 
