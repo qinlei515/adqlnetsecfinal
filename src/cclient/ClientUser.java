@@ -20,6 +20,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.TreeMap;
 
 import javax.crypto.BadPaddingException;
@@ -42,6 +43,8 @@ public class ClientUser
 {
 	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
 	public static final String DEFAULT_KEY_SERVER = "127.0.0.1"; 
+	
+	
 	
 	public ClientUser()
 	{
@@ -147,6 +150,11 @@ public class ClientUser
 	protected RSAPrivateKey privateKey;	
 	public RSAPrivateKey getPrivateKey() { return privateKey; }
 	
+	
+	protected Map<String, byte[]> UserPubKeys;
+	public void AddPubKey(String name, byte[] PubKey) { UserPubKeys.put(name, PubKey); }
+	
+	
 	/**
 	 * Get the username if it hasn't been entered.
 	 * Connect to the key server:
@@ -217,8 +225,15 @@ public class ClientUser
 			p = new CSLogOnRequest(userID, password, this);
 			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
+			
+			/* get her own public key, for testing purpose only */
+			p = new KSPublicRequest(this, this.userID);
+			boolean gotkey = p.run(getChatServer(), cSessionCipher);
+			if(gotkey) { System.out.println("Successfully got public key."); }
 		}
 	}
+	
+
 	
 	protected void promptForPassword()
 	{

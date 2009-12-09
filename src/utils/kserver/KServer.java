@@ -20,6 +20,13 @@ public class KServer extends Server
 		users.put(name, data);
 		return true;
 	}
+	
+	public byte[] getPubKey(String name) 
+	{
+		UserKeyData ukd = users.get(name);
+		return ukd.getPublicKey();
+	}
+	
 	public boolean userExists(String name) { return users.containsKey(name); }
 	
 	public KServer()
