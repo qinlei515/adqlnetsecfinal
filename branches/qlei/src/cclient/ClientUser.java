@@ -18,6 +18,7 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Map;
@@ -145,11 +146,24 @@ public class ClientUser
 	public byte[] sequence() { return chatSequence; }
 	
 
-	protected RSAPublicKey publicKey;	
-	public RSAPublicKey getPublicKey() { return publicKey; }
+//	protected RSAPublicKey publicKey;	
+//	public RSAPublicKey getPublicKey() { return publicKey; }
 
 	protected RSAPrivateKey privateKey;	
 	public RSAPrivateKey getPrivateKey() { return privateKey; }
+	
+	public void setKey(byte[] privKeyBytes)
+	{
+		try 
+		{
+			KeyFactory kFactory = KeyFactory.getInstance("RSA");
+			
+			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyBytes);
+			privateKey = (RSAPrivateKey)kFactory.generatePrivate(keySpec);
+		}
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		catch (InvalidKeySpecException e) { e.printStackTrace(); }
+	}
 	
 	
 	protected Map<String, byte[]> UserPubKeys;
@@ -188,10 +202,10 @@ public class ClientUser
 				System.out.println("Username error.");
 		}
 		System.out.println("Have you used this name before? (y/n)");
-		String answer = "";
-		//TODO: Commented to speed testing.
-//		try { answer = input.readLine(); }
-//		catch(IOException e) { e.printStackTrace(); }
+		String answer = "y";
+
+		try { answer = input.readLine(); }
+		catch(IOException e) { e.printStackTrace(); }
 		if("y".equals(answer))
 		{
 			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
@@ -200,7 +214,9 @@ public class ClientUser
 			promptForPassword();
 			
 			Protocol p;
-			//TODO: Retrieve keys from key server
+			p = new KSPrivateRequest(password, this);
+			boolean gotKeys = p.run(getKeyServer(), kSessionCipher);
+			if(gotKeys) { System.out.println("Successfully retrieved keys from server."); }
 			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
@@ -214,9 +230,9 @@ public class ClientUser
 			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			else return;
-			generateKeys();
+			RSAPublicKey publicKey = generateKeys();
 			promptForPassword();
-			Protocol p = new KSAddRequest(userID, getPublicKey(), getPrivateKey(), password);
+			Protocol p = new KSAddRequest(userID, publicKey, getPrivateKey(), password);
 			boolean addSuccess = p.run(getKeyServer(), kSessionCipher);
 			try { getKeyServer().close(); } 
 			catch (IOException e) { e.printStackTrace(); }
@@ -270,14 +286,14 @@ public class ClientUser
 		}
 	}
 	
-	protected void generateKeys()
+	protected RSAPublicKey generateKeys()
 	{
 		RSAKeyPairGenerator gen = new RSAKeyPairGenerator();
 		gen.initialize(Constants.RSA_KEY_SIZE, new SecureRandom());
 		KeyPair kp = gen.generateKeyPair();
 		
-		publicKey = (RSAPublicKey)kp.getPublic();
 		privateKey = (RSAPrivateKey)kp.getPrivate();
+		return (RSAPublicKey)kp.getPublic();
 	}
 	
 	public CipherPair authenticate(Socket server, RSAPublicKey serverKey)

@@ -47,7 +47,9 @@ public class KSAddRequest implements Protocol
 			byte[] privKeyKey = pwdHasher.digest(password.getBytes());
 			pwdCipher.init(Cipher.ENCRYPT_MODE, 
 					new SecretKeySpec(privKeyKey, 0, 16, Constants.SESSION_KEY_ALG));
-			this.encryptedPrivateKey = pwdCipher.doFinal(privKey.getEncoded()); 
+			byte[] iv = pwdCipher.getIV();
+			this.encryptedPrivateKey = Common.createMessage(iv, pwdCipher.doFinal(privKey.getEncoded()));
+			
 		}
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
 		catch (BadPaddingException e) { e.printStackTrace(); } 
