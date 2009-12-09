@@ -10,6 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import javax.crypto.Mac;
 
 import protocol.Protocol;
+import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
@@ -43,10 +44,12 @@ public class KSPublic implements Protocol {
 			if (!server.userExists(BufferUtils.translateString(ctname)))
 			{
 				//TODO send client a message telling that username does not exist
+				byte[] message = Common.createMessage(Requests.DENY, ctname);
+				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
 				return false;
 			}
 			byte[] pubKey = server.getPubKey(BufferUtils.translateString(ctname));
-			byte[] message = Common.createMessage(pubKey, skhash);
+			byte[] message = Common.createMessage(Requests.CONFIRM, pubKey, skhash);
 			toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
 			return true;
 		}

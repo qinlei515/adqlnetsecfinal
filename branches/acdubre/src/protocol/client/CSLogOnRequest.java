@@ -98,6 +98,7 @@ public class CSLogOnRequest implements Protocol
 						thisUser.setSequence(resp.get(1));
 					}
 				}
+				return true;
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 

@@ -8,13 +8,8 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Map;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
-import javax.crypto.NoSuchPaddingException;
 
 import cclient.ClientUser;
 
@@ -36,7 +31,6 @@ public class KSPublicRequest implements Protocol {
 		this.user = user;
 		this.ctname = ctname;
 	}
-	
 	
 	@Override
 	public boolean run(Socket server, CipherPair sessionCipher) {
@@ -63,8 +57,14 @@ public class KSPublicRequest implements Protocol {
 					return false;
 				}
 				resp = Common.splitResponse(message);
-				byte[] PublicKey = resp.get(0);
-				byte[] skhash = resp.get(1);
+				byte[] exists = resp.get(0);
+				if(BufferUtils.equals(exists, Requests.DENY))
+				{
+					System.err.println("Could not retrieve " + ctname + "'s public key.");
+					return false;
+				}	
+				byte[] PublicKey = resp.get(1);
+				byte[] skhash = resp.get(2);
 				MessageDigest md = MessageDigest.getInstance(Constants.DH_HASH_ALG);
 				byte[] skhashc =  md.digest(sessionCipher.key.getEncoded());
 				if(!BufferUtils.equals(skhashc, skhash))

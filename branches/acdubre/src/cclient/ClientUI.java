@@ -53,6 +53,7 @@ public class ClientUI
 			else if((command.equals("m") || command.equals("message")))
 			{
 				System.out.println("Sending " + target + " \"" + message + "\"");
+				user.getPublicKey(target);
 			}
 			else if((command.equals("exit")))
 			{

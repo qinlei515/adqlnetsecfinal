@@ -30,7 +30,6 @@ public class CSLogOn implements Protocol
 	public CSLogOn(byte[] name, CServer server)
 	{
 		this.name = name;
-		System.out.println(BufferUtils.translateString(name));
 		this.pwd = server.getUser(BufferUtils.translateString(name));
 		this.server = server;
 	}
@@ -92,6 +91,7 @@ public class CSLogOn implements Protocol
 				}
 				message = Common.createMessage(Requests.LOG_OFF, server.sequence());
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
+				return true;
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
