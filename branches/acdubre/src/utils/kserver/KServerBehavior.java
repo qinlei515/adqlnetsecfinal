@@ -23,12 +23,13 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Constants;
+import utils.server.Server;
 import utils.server.ServerBehavior;
 
 public class KServerBehavior implements ServerBehavior 
 {
 	KServer server;
-	public void setServer(KServer server) { this.server = server; }
+	public void setServer(Server server) { this.server = (KServer)server; }
 	
 	public void handleConnection(CipherPair sessionCipher, Socket connection) 
 	{
@@ -55,7 +56,6 @@ public class KServerBehavior implements ServerBehavior
 			}
 			
 			request = Common.splitResponse(message);
-			BufferUtils.println(message);
 			
 			Protocol p;
 			
@@ -83,6 +83,7 @@ public class KServerBehavior implements ServerBehavior
 			}
 			p.run(connection, sessionCipher);
 			
+			connection.close();
 		}
 		catch(IOException e) { e.printStackTrace(); } 
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 

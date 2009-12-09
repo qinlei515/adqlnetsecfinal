@@ -14,7 +14,6 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
@@ -26,16 +25,13 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyAgreement;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import protocol.Protocol;
-import protocol.client.KSAddRequest;
+import protocol.client.*;
 
 
 import sun.security.rsa.RSAKeyPairGenerator;
@@ -53,8 +49,10 @@ public class ClientUser
 	{
 		connections = new TreeMap<String, Socket>();
 		activeUsers = new TreeMap<String, InetAddress>();
-		setChatServer(DEFAULT_CHAT_SERVER);
-		setKeyServer(DEFAULT_KEY_SERVER);
+		chatServerIP = DEFAULT_CHAT_SERVER;
+		keyServerIP = DEFAULT_KEY_SERVER;
+		setChatServer(chatServerIP);
+		setKeyServer(chatServerIP);
 	}
 	
 	protected String password;
@@ -65,6 +63,7 @@ public class ClientUser
 	public void setUserID(String uid) { this.userID = uid; }
 	
 	protected Socket chatServer;
+	protected String chatServerIP;
 	
 	public Socket getChatServer() { return chatServer; }
 	public void setChatServer(String chatServerIP) 
@@ -73,8 +72,18 @@ public class ClientUser
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); } 
 	}
+	public void resetChatServer()
+	{
+		try { chatServer.close(); } 
+		catch (IOException e) { e.printStackTrace(); }
+		try { chatServer = new Socket(chatServerIP, Constants.CHAT_SERVER_PORT); }
+		catch (UnknownHostException e) { e.printStackTrace(); }
+		catch (IOException e) { e.printStackTrace(); }
+	}
+	
 	
 	protected Socket keyServer;
+	protected String keyServerIP;
 	
 	public Socket getKeyServer() { return keyServer; }
 	public void setKeyServer(String keyServerIP) 
@@ -82,6 +91,15 @@ public class ClientUser
 		try { this.keyServer = new Socket(keyServerIP, Constants.KEY_SERVER_PORT); } 
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); }
+	}
+	
+	public void resetKeyServer()
+	{
+		try { keyServer.close(); } 
+		catch (IOException e) { e.printStackTrace(); }
+		try { keyServer = new Socket(keyServerIP, Constants.CHAT_SERVER_PORT); }
+		catch (UnknownHostException e) { e.printStackTrace(); }
+		catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	protected Map<String, Socket> connections;
@@ -171,14 +189,27 @@ public class ClientUser
 			promptForPassword();
 			Protocol p = new KSAddRequest(userID, getPublicKey(), getPrivateKey(), password);
 			boolean addSuccess = p.run(getKeyServer(), kSessionCipher);
-			if(addSuccess) { System.out.println("User successfully added.");
+			try { getKeyServer().close(); } 
+			catch (IOException e) { e.printStackTrace(); }
 			
-			}
-			//TODO: Generate keys
-			//TODO: Add user to key server
-			//TODO: Add + log in to chat server
+			if(addSuccess) { System.out.println("User successfully added to key server."); }
+			else return;
+			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
-			if(cSessionCipher != null) System.out.println("Chat server session key established.");
+			if(cSessionCipher != null) { System.out.println("Chat server session key established."); }
+			else return;
+			p = new CSAddRequest(userID, password);
+			addSuccess = p.run(getChatServer(), cSessionCipher);
+			
+			if(addSuccess) { System.out.println("User successfully added to chat server."); }
+			else return;
+			resetChatServer();
+			cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			p = new CSLogOnRequest();
+			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
+			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
+			try { getChatServer().close(); } 
+			catch (IOException e) { e.printStackTrace(); }
 		}
 	}
 	

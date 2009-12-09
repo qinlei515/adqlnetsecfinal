@@ -22,6 +22,9 @@ import utils.Constants;
 import utils.kserver.KServer;
 import utils.kserver.UserKeyData;
 
+/**
+ * An object for completing the key server side of a user add request.
+ */
 public class KSAdd implements Protocol 
 {
 	protected byte[] name;
@@ -44,6 +47,9 @@ public class KSAdd implements Protocol
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 	}
 	
+	/**
+	 * Returns whether the user was added.
+	 */
 	public boolean run(Socket client, CipherPair sessionCipher) 
 	{
 		try 
@@ -52,9 +58,18 @@ public class KSAdd implements Protocol
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
 			hmac.init(sessionCipher.key);
+			
+			if(server.userExists(BufferUtils.translateString(name)))
+			{
+				byte[] denial = Common.createMessage(Requests.DENY, name);
+				byte[] encrDenial = sessionCipher.encrypt.doFinal(denial);
+				byte[] mac = hmac.doFinal(denial);
+				toClient.write(Common.createMessage(encrDenial, mac));
+				return false;
+			}
 		
 			byte[] salt = BufferUtils.random(2);
-			byte[] message = Common.createMessage(name, salt);
+			byte[] message = Common.createMessage(Requests.CONFIRM, name, salt);
 			byte[] mac = hmac.doFinal(message);
 			byte[] encrMessage = sessionCipher.encrypt.doFinal(message);
 			
@@ -72,8 +87,13 @@ public class KSAdd implements Protocol
 			}
 			byte[] pwd2Hash = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM).digest(pwdHash);
 			UserKeyData user = new UserKeyData(salt, pwd2Hash, pubKey, encrPrivKey);
-			server.addUser(BufferUtils.translateString(name), user);
-			byte[] confirmation = Common.createMessage(name, Requests.ADD, Requests.CONFIRM);
+			boolean added = server.addUser(BufferUtils.translateString(name), user);
+			byte[] confirmation;
+			
+			if(added)
+				confirmation = Common.createMessage(name, Requests.ADD, Requests.CONFIRM);
+			else
+				confirmation = Common.createMessage(name, Requests.ADD, Requests.DENY);
 			byte[] encrConfirm = sessionCipher.encrypt.doFinal(confirmation);
 			toClient.write(Common.createMessage(encrConfirm));
 			return true;

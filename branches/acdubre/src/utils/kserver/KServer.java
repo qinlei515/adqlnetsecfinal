@@ -13,12 +13,19 @@ public class KServer extends Server
 	public static final String SECONDARY_KEY = "keys/kSecondary.key";
 	
 	protected Map<String, UserKeyData> users;
-	public void addUser(String name, UserKeyData data) { users.put(name, data); }
+	public boolean addUser(String name, UserKeyData data) 
+	{
+		if(userExists(name))
+			return false;
+		users.put(name, data);
+		return true;
+	}
+	public boolean userExists(String name) { return users.containsKey(name); }
 	
 	public KServer()
 	{
 		super(Constants.KEY_SERVER_PORT, new KServerBehavior(), PRIMARY_KEY, PRIMARY_PUB_KEY, SECONDARY_KEY);
-		((KServerBehavior)this.behavior).setServer(this);
+		behavior.setServer(this);
 		users = new TreeMap<String, UserKeyData>();
 	}
 }
