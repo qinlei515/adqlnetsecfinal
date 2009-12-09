@@ -69,7 +69,7 @@ public class CServerBehavior implements ServerBehavior
 			}
 			else if(BufferUtils.equals(request.get(0), Requests.LOG_ON))
 			{
-				p = new CSLogOn();
+				p = new CSLogOn(request.get(1), server);
 			}
 			else if(BufferUtils.equals(request.get(0), Requests.LOG_OFF))
 			{

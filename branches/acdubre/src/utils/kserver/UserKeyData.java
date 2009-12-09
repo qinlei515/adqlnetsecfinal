@@ -2,16 +2,16 @@ package utils.kserver;
 
 import java.security.interfaces.RSAPublicKey;
 
+import utils.Password;
+
 /**
  * Structure used by key server to store user data.
  */
 public class UserKeyData 
-{
-	protected byte[] pwdSalt;
-	public byte[] getSalt() { return pwdSalt; }
-	
-	protected byte[] pwd2Hash;
-	public byte[] getPwdHash() { return pwd2Hash; }
+{	
+	protected Password password;
+	public byte[] getSalt() { return password.salt; }
+	public byte[] getPwdHash() { return password.pwd2Hash; }
 	
 	protected byte[] publicKey;
 	public byte[] getPublicKey() { return publicKey; }
@@ -26,8 +26,7 @@ public class UserKeyData
 	
 	public UserKeyData(byte[] salt, byte[] pwd2Hash, byte[] rsaKey, byte[] encrPrivKeyBytes)
 	{
-		this.pwdSalt = salt;
-		this.pwd2Hash = pwd2Hash;
+		this.password = new Password(pwd2Hash, salt);
 		this.publicKey = rsaKey;
 		this.encryptedPrivateKeyBytes = encrPrivKeyBytes;
 	}

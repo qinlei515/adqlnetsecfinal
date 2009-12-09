@@ -46,9 +46,9 @@ public class ClientUI
 			
 			if((command.equals("list")))
 			{
-				System.out.println("Currently logged in users:\n");
+				System.out.println("Currently logged in users:");
 				for(String uid : user.getUsers().keySet())
-					System.out.println(uid);
+					System.out.println(uid + " " + user.getUsers().get(uid));
 			}
 			else if((command.equals("m") || command.equals("message")))
 			{

@@ -70,10 +70,7 @@ public class KSAddRequest implements Protocol
 				byte[] message = Common.createMessage(Requests.ADD, 
 						name.getBytes(), pubKey, encryptedPrivateKey);
 				byte[] iv = sessionCipher.encrypt.getIV();
-				byte[] encrMessage = sessionCipher.encrypt.doFinal(message);
-				byte[] mac = hmac.doFinal(message);
-				
-				toServer.write(Common.createMessage(iv, encrMessage, mac));
+				toServer.write(Common.wrapMessage(message, iv, hmac, sessionCipher));
 			}
 			{
 				ArrayList<byte[]> resp = Common.getResponse(fromServer);

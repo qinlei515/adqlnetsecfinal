@@ -5,7 +5,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidAlgorithmParameterException;
@@ -21,7 +20,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.TreeMap;
 
 import javax.crypto.BadPaddingException;
@@ -47,8 +45,8 @@ public class ClientUser
 	
 	public ClientUser()
 	{
-		connections = new TreeMap<String, Socket>();
-		activeUsers = new TreeMap<String, InetAddress>();
+//		connections = new TreeMap<String, Socket>();
+		activeUsers = new TreeMap<String, String>();
 		chatServerIP = DEFAULT_CHAT_SERVER;
 		keyServerIP = DEFAULT_KEY_SERVER;
 		setChatServer(chatServerIP);
@@ -102,41 +100,45 @@ public class ClientUser
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	protected Map<String, Socket> connections;
+//	protected Map<String, Socket> connections;
+//	
+//	public boolean addConnection(String user, Socket location)
+//	{
+//		if(connections.containsKey(user))
+//		{
+//			System.err.println("Cannot create connection to " + user + ": connection already exists.");
+//			return false;
+//		}
+//		else
+//		{
+//			connections.put(user, location);
+//			return true;
+//		}
+//	}
+//	
+//	public boolean closeConnection(String user)
+//	{
+//		if(!connections.containsKey(user))
+//		{
+//			System.err.println("Cannot close connection to " + user + ": no connection exists.");
+//			return false;
+//		}
+//		else
+//		{
+//			connections.remove(user);
+//			return true;
+//		}
+//	}
 	
-	public boolean addConnection(String user, Socket location)
-	{
-		if(connections.containsKey(user))
-		{
-			System.err.println("Cannot create connection to " + user + ": connection already exists.");
-			return false;
-		}
-		else
-		{
-			connections.put(user, location);
-			return true;
-		}
-	}
+	protected TreeMap<String, String> activeUsers;
 	
-	public boolean closeConnection(String user)
-	{
-		if(!connections.containsKey(user))
-		{
-			System.err.println("Cannot close connection to " + user + ": no connection exists.");
-			return false;
-		}
-		else
-		{
-			connections.remove(user);
-			return true;
-		}
-	}
-	
-	protected TreeMap<String, InetAddress> activeUsers;
-	
-	public TreeMap<String, InetAddress> getUsers() { return activeUsers; }
-	public void addUser(String uid, InetAddress addr) { activeUsers.put(uid, addr); }
+	public TreeMap<String, String> getUsers() { return activeUsers; }
+	public void addUser(String uid, String addr) { activeUsers.put(uid, addr); }
 	public void removeUser(String uid) { activeUsers.remove(uid); }
+	
+	protected byte[] chatSequence;
+	public void setSequence(byte[] sequence) { chatSequence = sequence; }
+	public byte[] sequence() { return chatSequence; }
 	
 
 	protected RSAPublicKey publicKey;	
@@ -175,10 +177,17 @@ public class ClientUser
 			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			
+			promptForPassword();
+			
+			Protocol p;
 			//TODO: Retrieve keys from key server
-			//TODO: Log in to chat server
+			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
+			else return;
+			p = new CSLogOnRequest(userID, password, this);
+			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
+			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
 		}
 		else
 		{
@@ -205,11 +214,9 @@ public class ClientUser
 			else return;
 			resetChatServer();
 			cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
-			p = new CSLogOnRequest();
+			p = new CSLogOnRequest(userID, password, this);
 			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
-			try { getChatServer().close(); } 
-			catch (IOException e) { e.printStackTrace(); }
 		}
 	}
 	

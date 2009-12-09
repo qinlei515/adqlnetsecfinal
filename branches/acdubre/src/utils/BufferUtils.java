@@ -84,6 +84,20 @@ public class BufferUtils
 		return answer;
 	}
 	
+	public static String translateIPAddress(byte[] ipAddress)
+	{
+		String answer = "";
+		for(int i = 0; i < 3; i++)
+		{
+			if(ipAddress[i] < 0) answer += (int)ipAddress[i] + 256;
+			else answer += ipAddress[i];
+			answer += ".";
+		}
+		if(ipAddress[3] < 0) answer += (int)ipAddress[3] + 256;
+		else answer += ipAddress[3];
+		return answer;
+	}
+	
 	// Generate a random number as an array of bytes.
 	public static byte[] random(int byteSize)
 	{
