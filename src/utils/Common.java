@@ -2,29 +2,13 @@ package utils;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.KeyAgreement;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
 
 public class Common 
 {
@@ -56,7 +40,6 @@ public class Common
 	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException
 	{
 		int numComponents = BufferUtils.translate(from.read(), from.read());
-		System.out.println(numComponents);
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		for(int i = 0; i < numComponents; i++)
 		{

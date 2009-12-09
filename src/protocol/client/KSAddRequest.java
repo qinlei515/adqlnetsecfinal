@@ -82,8 +82,8 @@ public class KSAddRequest implements Protocol
 				byte[] message = sessionCipher.decrypt.doFinal(encrMessage);
 				
 				ArrayList<byte[]> splitMessage = Common.splitResponse(message);
-				byte[] name = splitMessage.get(0);
-				byte[] salt = splitMessage.get(1);
+				byte[] allowed = splitMessage.get(0);
+				byte[] name = splitMessage.get(1);
 				
 				byte[] checkMac = hmac.doFinal(message);
 				
@@ -93,6 +93,13 @@ public class KSAddRequest implements Protocol
 					System.err.println("Integrity check failed.");
 					return false;
 				}
+				if(BufferUtils.equals(allowed, Requests.DENY))
+				{
+					System.out.println("User already in use (key), cannot be created.");
+					return false;
+				}
+				
+				byte[] salt = splitMessage.get(2);
 				
 				byte[] pwdSalt = BufferUtils.concat(password.getBytes(), salt);
 				// TODO: Hash again to match the proposed protocol, now unnecessary.
@@ -101,6 +108,16 @@ public class KSAddRequest implements Protocol
 				byte[] pwdMac = hmac.doFinal(pwdHash);
 				byte[] encrPwdHash = sessionCipher.encrypt.doFinal(pwdHash);
 				toServer.write(Common.createMessage(encrPwdHash, pwdMac));
+			}
+			{
+				ArrayList<byte[]> confirmation = Common.getResponse(fromServer);
+				byte[] decryptedConfirm = sessionCipher.decrypt.doFinal(confirmation.get(0));
+				confirmation = Common.splitResponse(decryptedConfirm);
+				
+				if(BufferUtils.equals(name.getBytes(), confirmation.get(0))
+						&& BufferUtils.equals(Requests.ADD, confirmation.get(1))
+						&& BufferUtils.equals(Requests.CONFIRM, confirmation.get(2)))
+					return true;
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
