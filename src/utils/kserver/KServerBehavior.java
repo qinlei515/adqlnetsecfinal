@@ -56,6 +56,7 @@ public class KServerBehavior implements ServerBehavior
 			}
 			
 			request = Common.splitResponse(message);
+			System.out.println(BufferUtils.translateString(request.get(0)));
 			
 			Protocol p;
 			
@@ -77,11 +78,12 @@ public class KServerBehavior implements ServerBehavior
 			}
 			else
 			{
-				System.err.print("Bad request:");
+				System.err.print("Bad request: ");
 				BufferUtils.println(request.get(0));
 				p = new BadRequest();
 			}
-			p.run(connection, sessionCipher);
+			if(p.run(connection, sessionCipher)) 
+				System.out.println("Protocol completed successfully.");
 			
 			connection.close();
 		}

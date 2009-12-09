@@ -134,7 +134,6 @@ public class Server
         // Should be unreachable.
         catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
         catch (SignatureException e) { e.printStackTrace(); } 
-        //TODO: Handle corrupted etc. key files.
         catch (InvalidKeyException e) { e.printStackTrace(); } 
         return null;
     }
@@ -193,7 +192,7 @@ public class Server
 			byte[] iv = sessionCipher.encrypt.getIV();
 			byte[] auth = sessionCipher.encrypt.doFinal(clientKeyBytes);
 			toClient.write(Common.createMessage(signedHash, pubKeyBytes, iv, auth));
-
+			
 			return sessionCipher;
 		}
 		catch (IOException e) { e.printStackTrace(); } 

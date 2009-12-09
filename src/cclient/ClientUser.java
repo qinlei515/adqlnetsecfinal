@@ -50,6 +50,7 @@ public class ClientUser
 	{
 //		connections = new TreeMap<String, Socket>();
 		activeUsers = new TreeMap<String, String>();
+		UserPubKeys = new TreeMap<String, byte[]>();
 		chatServerIP = DEFAULT_CHAT_SERVER;
 		keyServerIP = DEFAULT_KEY_SERVER;
 		setChatServer(chatServerIP);
@@ -98,7 +99,7 @@ public class ClientUser
 	{
 		try { keyServer.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
-		try { keyServer = new Socket(keyServerIP, Constants.CHAT_SERVER_PORT); }
+		try { keyServer = new Socket(keyServerIP, Constants.KEY_SERVER_PORT); }
 		catch (UnknownHostException e) { e.printStackTrace(); }
 		catch (IOException e) { e.printStackTrace(); }
 	}
@@ -153,6 +154,17 @@ public class ClientUser
 	
 	protected Map<String, byte[]> UserPubKeys;
 	public void AddPubKey(String name, byte[] PubKey) { UserPubKeys.put(name, PubKey); }
+	public byte[] getPublicKey(String name)
+	{
+		if(!UserPubKeys.containsKey(name))
+		{
+			resetKeyServer();
+			CipherPair sessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			Protocol p = new KSPublicRequest(this, name);
+			p.run(getKeyServer(), sessionCipher);
+		}
+		return UserPubKeys.get(name);
+	}
 	
 	
 	/**
@@ -227,9 +239,18 @@ public class ClientUser
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
 			
 			/* get her own public key, for testing purpose only */
-			p = new KSPublicRequest(this, this.userID);
-			boolean gotkey = p.run(getChatServer(), cSessionCipher);
-			if(gotkey) { System.out.println("Successfully got public key."); }
+//			resetKeyServer();
+//			kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+//			if(kSessionCipher != null)
+//			{
+//				p = new KSPublicRequest(this, this.userID);
+//				boolean gotkey = p.run(getKeyServer(), kSessionCipher);
+//				if(gotkey) { System.out.println("Successfully got public key."); }
+//			}
+//			else
+//			{
+//				System.err.println("Key Server authentication failed.");
+//			}
 		}
 	}
 	

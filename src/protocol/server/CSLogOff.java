@@ -2,8 +2,6 @@ package protocol.server;
 
 import java.net.Socket;
 
-import javax.crypto.Cipher;
-
 import protocol.Protocol;
 import utils.CipherPair;
 
