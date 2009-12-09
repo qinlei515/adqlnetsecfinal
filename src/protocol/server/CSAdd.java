@@ -52,28 +52,26 @@ public class CSAdd implements Protocol
 				return false;
 			}
 			
+			byte[] salt = BufferUtils.random(2);
+			
 			{
-				byte[] salt = BufferUtils.random(2);
-				byte[] message = Common.createMessage(Requests.CONFIRM, name, salt);
-				byte[] encrMessage = sessionCipher.encrypt.doFinal(message);
-				byte[] mac = hmac.doFinal(message);
 				
-				toClient.write(Common.createMessage(encrMessage, mac));
+				byte[] message = Common.createMessage(Requests.CONFIRM, name, salt);
+				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
 			}
 			{
 				ArrayList<byte[]> resp = Common.getResponse(fromClient);
 				byte[] encrPwd = resp.get(0);
 				byte[] mac = resp.get(1);
-				byte[] pwdHash = sessionCipher.decrypt.doFinal(encrPwd);
-				byte[] checkMac = hmac.doFinal(pwdHash);
-				if(!BufferUtils.equals(mac, checkMac))
+				byte[] pwdHash = Common.checkIntegrity(encrPwd, mac, hmac, sessionCipher);
+				if(pwdHash == null)
 				{
 					System.err.println("Integrity check failed.");
 					return false;
 				}
 				MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
 				byte[] pwd2Hash = pwdHasher.digest(pwdHash);
-				server.addUser(BufferUtils.translateString(name), pwd2Hash);
+				server.addUser(BufferUtils.translateString(name), pwd2Hash, salt);
 			}
 			{
 				byte[] confirm = Common.createMessage(name, Requests.ADD, Requests.CONFIRM);

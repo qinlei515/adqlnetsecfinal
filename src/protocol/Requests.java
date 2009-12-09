@@ -7,6 +7,7 @@ public class Requests
 	public static final byte[] UPDATE = "UPDATE".getBytes();
 	public static final byte[] CONFIRM = "CONFIRM".getBytes();
 	public static final byte[] DENY = "DENY".getBytes();
+	public static final byte[] SALT = "SALT".getBytes();
 
 	// Key server specific requests.
 	public static final byte[] PUBLIC = "PUBLIC".getBytes();

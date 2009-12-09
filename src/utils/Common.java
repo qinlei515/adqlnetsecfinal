@@ -10,6 +10,10 @@ import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
+
 public class Common 
 {
 	
@@ -128,7 +132,7 @@ public class Common
 	}
 	
 	// Interpret number as an integer; add one to it.
-	protected static void plusOne(byte[] number)
+	public static void plusOne(byte[] number)
 	{
 		int i = 0;
 		while(number[i] == Byte.MAX_VALUE)
@@ -155,4 +159,58 @@ public class Common
             catch (SignatureException e) { e.printStackTrace(); } 
             return false;
     }
+	
+	public static byte[] wrapMessage(byte[] message, Mac hmac, CipherPair sessionCipher)
+	{
+		try 
+		{
+			byte[] encrMessage = sessionCipher.encrypt.doFinal(message);
+			byte[] mac = hmac.doFinal(message);
+			return createMessage(encrMessage, mac);
+		}
+		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
+		catch (BadPaddingException e) { e.printStackTrace(); }
+		return null;
+	}
+	
+	public static byte[] wrapMessage(byte[] message, byte[] iv, Mac hmac, CipherPair sessionCipher)
+	{
+		try 
+		{
+			byte[] encrMessage = sessionCipher.encrypt.doFinal(message);
+			byte[] mac = hmac.doFinal(message);
+			return createMessage(iv, encrMessage, mac);
+		}
+		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
+		catch (BadPaddingException e) { e.printStackTrace(); }
+		return null;
+	}
+	
+	/**
+	 * Does mac match the decrypted message?
+	 * 
+	 * @param encrMessage The message to be decrypted and integrity checked.
+	 * @param mac The MAC for message.
+	 * @param hmac The hmac function, initialized.
+	 * @param sessionCipher The cipher to decrypt the message.
+	 * @return The message if the MAC matches, else null.
+	 */
+	public static byte[] checkIntegrity(byte[] encrMessage, byte[] mac, Mac hmac, CipherPair sessionCipher)
+	{
+		try 
+		{ 
+			byte[] answer = sessionCipher.decrypt.doFinal(encrMessage);
+			byte[] checkMac = hmac.doFinal(answer);
+			if(BufferUtils.equals(mac, checkMac))
+				return answer;
+		} 
+		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
+		catch (BadPaddingException e) { e.printStackTrace(); }
+		return null;
+	}
+	
+	public static byte[] checkIntegrity(ArrayList<byte[]> resp, Mac hmac, CipherPair sessionCipher)
+	{
+		return checkIntegrity(resp.get(0), resp.get(1), hmac, sessionCipher);
+	}
 }
