@@ -25,6 +25,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 
 public class KSPrivateRequest implements Protocol 
@@ -39,6 +40,8 @@ public class KSPrivateRequest implements Protocol
 		this.password = password;
 		this.user = user;
 	}
+	
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
 	
 	public boolean run(Socket server, CipherPair sessionCipher) 
 	{

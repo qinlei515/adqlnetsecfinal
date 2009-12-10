@@ -17,6 +17,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.Password;
 import utils.cserver.CServer;
@@ -24,8 +25,6 @@ import utils.cserver.CServer;
 public class CSLogOn implements Protocol 
 {
 	protected byte[] name;
-	/* Password is actually a data structure including twice hash of password,
-	 * rather than password itself */
 	protected Password pwd;
 	protected CServer server;
 	
@@ -36,16 +35,12 @@ public class CSLogOn implements Protocol
 		this.server = server;
 	}
 	
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
+	
 	public boolean run(Socket client, CipherPair sessionCipher) 
 	{
 		try 
 		{
-			if(pwd == null)
-			{
-				System.err.println("User does not exist, cannot log in.");
-				return false;
-			}
-			
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
@@ -53,6 +48,11 @@ public class CSLogOn implements Protocol
 			hmac.init(sessionCipher.key);
 			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
 			
+			if(pwd == null)
+			{
+				System.err.println("User does not exist, cannot log in.");
+				return false;
+			}
 			{
 				byte[] salt = pwd.salt;
 				byte[] message = Common.createMessage(name, salt);
@@ -83,7 +83,6 @@ public class CSLogOn implements Protocol
 					//TODO: Politely tell the user?
 					return false;
 				}
-					
 				server.updateUser(BufferUtils.translateString(name), ipAddress);
 				server.sequenceIncrement();
 				Map<String, byte[]> onlineUsers = server.getOnlineUsers();
@@ -95,7 +94,10 @@ public class CSLogOn implements Protocol
 				}
 				message = Common.createMessage(Requests.LOG_OFF, server.sequence());
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
-				return true;
+				return new ChatLogBroadcast(server,
+						BufferUtils.translateString(name),
+						ipAddress,
+						Requests.LOG_ON).run(null, null);
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 

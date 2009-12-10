@@ -21,7 +21,6 @@ public class KServer extends Server
 		users.put(name, data);
 		return true;
 	}
-	
 	public byte[] getSalt(String name)
 	{
 		UserKeyData data = users.get(name);

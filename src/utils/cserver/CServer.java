@@ -14,8 +14,6 @@ public class CServer extends Server
 	public static final String PRIMARY_PUB_KEY = "keys/cPrimaryPub.key";
 	public static final String SECONDARY_KEY = "keys/cSecondary.key";
 	
-	/* Password is actually a data structure including twice hash of password,
-	 * rather than password itself */
 	Map<String, Password> registeredUsers;
 	
 	public boolean userExists(String name) { return registeredUsers.containsKey(name); }
