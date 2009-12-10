@@ -31,10 +31,17 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.constants.Keys;
+import utils.constants.Ports;
+import utils.exceptions.ConnectionClosedException;
 
 /**
- * Build a connection between two users.
+ * Requests a connection between two users.
+ * 
+ * Adds a connection to this user's connection map that matches the Accepting user's.
+ * 
+ * @author Alex Dubreuil
  */
 public class ConnectionRequest implements Protocol 
 {
@@ -58,7 +65,7 @@ public class ConnectionRequest implements Protocol
 				System.err.println("Cannot initiate connection: User " + destName + " does not have a public key.");
 				return false;
 			}
-			c.s = new Socket(user.getUsers().get(destName), Constants.MESSAGE_PORT);
+			c.s = new Socket(user.getUsers().get(destName), Ports.MESSAGE_PORT);
 			DataOutputStream toDest = new DataOutputStream(c.s.getOutputStream());
 			DataInputStream fromDest = new DataInputStream(c.s.getInputStream());
 			
@@ -67,7 +74,7 @@ public class ConnectionRequest implements Protocol
 			PublicKey theirDHKey;
 			{
 				KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
-				dhGen.initialize(Constants.getDHParameters());
+				dhGen.initialize(Keys.getDHParameters());
 				kPair = dhGen.generateKeyPair();
 				ourDHKey = kPair.getPublic();
 				
@@ -99,15 +106,15 @@ public class ConnectionRequest implements Protocol
 				ka.doPhase(theirDHKey, true);
 				
 				// Generates a 256-bit secret by default.
-				SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
+				SecretKey sessionKey = ka.generateSecret(CipherInfo.SESSION_KEY_ALG);
 				sessionKey = 
-					new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+					new SecretKeySpec(sessionKey.getEncoded(), 0, 16, CipherInfo.SESSION_KEY_ALG);
 				
 				c.cipher = 
-					new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+					new CipherPair(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE, sessionKey);
 				c.cipher.initEncrypt();
 				
-				c.hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+				c.hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 				c.hmac.init(sessionKey);
 				
 				byte[] iv = c.cipher.encrypt.getIV();
@@ -171,6 +178,12 @@ public class ConnectionRequest implements Protocol
 		}
 		catch (BadPaddingException e) {
 			e.printStackTrace();
+		}
+		catch (ConnectionClosedException e) {
+			try { c.s.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
 		}
 		return false;
 	}

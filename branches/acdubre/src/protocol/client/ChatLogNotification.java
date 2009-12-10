@@ -11,8 +11,17 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.Keys;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Client side of a client-server protocol, used to handle a chat log notification.
+ * 
+ * Either adds or removes a specified user from the active users map.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class ChatLogNotification implements Protocol 
 {
 	ClientUser user;
@@ -32,7 +41,7 @@ public class ChatLogNotification implements Protocol
 			byte[] message = update.get(0);
 			byte[] mac = update.get(1);
 			
-			if(Common.verify(mac, message, Constants.getCServerPrimaryKey()))
+			if(Common.verify(mac, message, Keys.getCServerPrimaryKey()))
 			{
 				update = Common.splitResponse(message);
 				if(update.size() != 4) { return false; }
@@ -58,6 +67,12 @@ public class ChatLogNotification implements Protocol
 			}
 		}
 		catch (IOException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { c.s.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		return false;
 	}
 

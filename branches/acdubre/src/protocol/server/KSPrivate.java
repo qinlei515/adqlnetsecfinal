@@ -17,9 +17,16 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 import utils.kserver.KServer;
 
+/**
+ * Response to a KSPrivateRequest. Retrieves a user's private key.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class KSPrivate implements Protocol 
 {
 	byte[] name;
@@ -40,9 +47,9 @@ public class KSPrivate implements Protocol
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			
 			{
 				byte[] salt = server.getSalt(BufferUtils.translateString(name));
@@ -56,6 +63,7 @@ public class KSPrivate implements Protocol
 				{
 					message = Common.createMessage(Requests.CONFIRM, name, salt);
 				}
+				System.out.println("Sending salt or denial.");
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
 			}
 			{
@@ -91,6 +99,12 @@ public class KSPrivate implements Protocol
 		catch (IOException e) { e.printStackTrace(); }
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { client.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		return false;
 	}
 

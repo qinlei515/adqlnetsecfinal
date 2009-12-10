@@ -17,10 +17,17 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
 import utils.Password;
+import utils.constants.CipherInfo;
 import utils.cserver.CServer;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Response to a log of request. Removes the user from the active user map.
+ * 
+ * @author Lei Qin, Alex Dubreuil
+ *
+ */
 public class CSLogOff implements Protocol {
 
 	protected byte[] name;
@@ -47,7 +54,7 @@ public class CSLogOff implements Protocol {
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			byte[] ipAddress;
 			
 			if(pwd == null)
@@ -95,7 +102,13 @@ public class CSLogOff implements Protocol {
 			return new ChatLogBroadcast(server, BufferUtils.translateString(name), ipAddress, Requests.LOG_OFF).run(new Connection());
 		}
 		catch (IOException e) { e.printStackTrace(); } 
-		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { client.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} 
 		return false;
 	}
 

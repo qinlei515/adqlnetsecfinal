@@ -23,7 +23,8 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 import utils.server.Server;
 import utils.server.ServerBehavior;
 
@@ -48,7 +49,7 @@ public class KServerBehavior implements ServerBehavior
 			byte[] message = sessionCipher.decrypt.doFinal(encrMessage);
 			
 			// Check integrity
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			if(!BufferUtils.equals(mac, hmac.doFinal(message)))
 			{
@@ -93,6 +94,12 @@ public class KServerBehavior implements ServerBehavior
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
 		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { connection.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 	}
 
 }

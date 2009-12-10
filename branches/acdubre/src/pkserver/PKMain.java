@@ -3,13 +3,16 @@ package pkserver;
 import java.io.IOException;
 
 import utils.kserver.KServer;
-import utils.server.Server;
 
+/**
+ * Main class to start a key server.
+ * 
+ * @author Alex Dubreuil
+ */
 public class PKMain 
 {
 	public static void main(String[] args) throws IOException
 	{
-		Server s = new KServer();
-		s.run();
+		new KServer().run();
 	}
 }

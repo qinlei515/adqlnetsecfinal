@@ -6,6 +6,12 @@ import protocol.Protocol;
 import utils.CipherPair;
 import utils.Connection;
 
+/**
+ * Unimplemented. A protocol for updating a user's information on the chat server. 
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CSUpdateRequest implements Protocol {
 
 	public boolean run(Connection c) { return run(c.s, c.cipher); }

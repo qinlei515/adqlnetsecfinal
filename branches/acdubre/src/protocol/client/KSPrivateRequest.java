@@ -26,8 +26,15 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Attempts to retrieve the specified user's private key from the key server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class KSPrivateRequest implements Protocol 
 {
 	String name;
@@ -50,9 +57,9 @@ public class KSPrivateRequest implements Protocol
 			DataOutputStream toServer = new DataOutputStream(server.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
 			
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			sessionCipher.initEncrypt();
 			
@@ -106,14 +113,14 @@ public class KSPrivateRequest implements Protocol
 				}
 				byte[] encrKeyBytes = resp.get(1);
 				Cipher pwdCipher = 
-					Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
-				pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+					Cipher.getInstance(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE);
+				pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 				byte[] privKeyKey = pwdHasher.digest(password.getBytes());
 				ArrayList<byte[]> keyInfo = Common.splitResponse(encrKeyBytes);
 				byte[] iv = keyInfo.get(0);
 				byte[] encrKey = keyInfo.get(1);
 				pwdCipher.init(Cipher.DECRYPT_MODE, 
-						new SecretKeySpec(privKeyKey, 0, 16, Constants.SESSION_KEY_ALG),
+						new SecretKeySpec(privKeyKey, 0, 16, CipherInfo.SESSION_KEY_ALG),
 						new IvParameterSpec(iv));
 				byte[] privKeyBytes = pwdCipher.doFinal(encrKey);
 				user.setKey(privKeyBytes);
@@ -128,6 +135,12 @@ public class KSPrivateRequest implements Protocol
 		catch (BadPaddingException e) { e.printStackTrace(); }
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
 		catch (IndexOutOfBoundsException e) { System.err.println("Connection error."); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		return false;
 	}
 

@@ -18,8 +18,16 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Client side of a client-server protocol. Attempts to log the specified user off 
+ * from the chat server.
+ * 
+ * @author Lei Qin, Alex Dubreuil
+ *
+ */
 public class CSLogOffRequest implements Protocol {
 
 	String name;
@@ -43,7 +51,7 @@ public class CSLogOffRequest implements Protocol {
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
 			
 			sessionCipher.initEncrypt();
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			
 			{
 				byte[] message = Common.createMessage(Requests.LOG_OFF, name.getBytes());
@@ -92,7 +100,13 @@ public class CSLogOffRequest implements Protocol {
 			}
 		}
 		catch (IOException e) { e.printStackTrace(); } 
-		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
+		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} 
 		return false;
 	}
 

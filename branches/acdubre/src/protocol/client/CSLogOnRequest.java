@@ -19,8 +19,16 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Client side of a client-server protocol. Attempts to log the specified user off 
+ * from the chat server.
+ * 
+ * @author Alex Dubreuil, Lei Qin
+ *
+ */
 public class CSLogOnRequest implements Protocol 
 {
 	String name;
@@ -43,10 +51,10 @@ public class CSLogOnRequest implements Protocol
 			DataOutputStream toServer = new DataOutputStream(server.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			sessionCipher.initEncrypt();
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			
 			{
 				byte[] message = Common.createMessage(Requests.LOG_ON, name.getBytes());
@@ -107,7 +115,13 @@ public class CSLogOnRequest implements Protocol
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
-		catch (InvalidKeyException e) { e.printStackTrace(); } 
+		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} 
 		return false;
 	}
 

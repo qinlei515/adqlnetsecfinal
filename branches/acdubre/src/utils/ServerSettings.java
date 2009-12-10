@@ -14,8 +14,10 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
+import utils.constants.CipherInfo;
+
 /**
- * Stores the critical information about a server.
+ * Stores the critical information about a server - IP address and port, RSA keys and key hash.
  */
 public class ServerSettings 
 {
@@ -59,7 +61,7 @@ public class ServerSettings
 		this.primary = primary;
 		try 
 		{
-			this.primaryKeyHash = MessageDigest.getInstance(Constants.DH_HASH_ALG).digest(primary.getEncoded());
+			this.primaryKeyHash = MessageDigest.getInstance(CipherInfo.DH_HASH_ALG).digest(primary.getEncoded());
 		} 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		this.secondary = secondary;
@@ -82,7 +84,7 @@ public class ServerSettings
 				keyInFile.close();
 				X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
 				this.primary = (RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(keySpec);
-				this.primaryKeyHash = MessageDigest.getInstance(Constants.DH_HASH_ALG).digest(primary.getEncoded());
+				this.primaryKeyHash = MessageDigest.getInstance(CipherInfo.DH_HASH_ALG).digest(primary.getEncoded());
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file: " + primaryFile + " not found."); }
 			try

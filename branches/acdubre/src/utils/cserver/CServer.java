@@ -3,11 +3,18 @@ package utils.cserver;
 import java.util.Map;
 import java.util.TreeMap;
 
-import utils.Common;
-import utils.Constants;
+import utils.BufferUtils;
 import utils.Password;
+import utils.constants.Ports;
 import utils.server.Server;
 
+/**
+ * Specialized server that deals with where users are (IP addresses), which
+ * users are available to chat, and informing clients of the same.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CServer extends Server
 {
 	public static final String PRIMARY_KEY = "keys/cPrimary.key";
@@ -34,12 +41,12 @@ public class CServer extends Server
 	public byte[] logOffUser(String name) { return onlineUsers.remove(name); }
 	
 	protected byte[] sequence;
-	public void sequenceIncrement() { Common.plusOne(sequence); }
+	public void sequenceIncrement() { BufferUtils.plusOne(sequence); }
 	public byte[] sequence() { return sequence; }
 	
 	public CServer()
 	{
-		super(Constants.CHAT_SERVER_PORT, new CServerBehavior(), PRIMARY_KEY, PRIMARY_PUB_KEY, SECONDARY_KEY);
+		super(Ports.CHAT_SERVER_PORT, new CServerBehavior(), PRIMARY_KEY, PRIMARY_PUB_KEY, SECONDARY_KEY);
 		behavior.setServer(this);
 		registeredUsers = new TreeMap<String, Password>();
 		onlineUsers = new TreeMap<String, byte[]>();

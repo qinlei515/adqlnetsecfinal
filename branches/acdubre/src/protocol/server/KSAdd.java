@@ -19,12 +19,15 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 import utils.kserver.KServer;
 import utils.kserver.UserKeyData;
 
 /**
- * An object for completing the key server side of a user add request.
+ * Response to a KSAddRequest. Adds a user to the key server.
+ * 
+ * @author Alex Dubreuil
  */
 public class KSAdd implements Protocol 
 {
@@ -44,7 +47,7 @@ public class KSAdd implements Protocol
 		this.encrPrivKey = encrPrivKey;
 		this.server = server;
 		
-		try { hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG); } 
+		try { hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 	}
 	
@@ -86,7 +89,7 @@ public class KSAdd implements Protocol
 					System.err.println("Integrity check failed.");
 					return false;
 				}
-				byte[] pwd2Hash = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM).digest(pwdHash);
+				byte[] pwd2Hash = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM).digest(pwdHash);
 				UserKeyData user = new UserKeyData(salt, pwd2Hash, pubKey, encrPrivKey);
 				boolean added = server.addUser(BufferUtils.translateString(name), user);
 				byte[] confirmation;
@@ -105,6 +108,12 @@ public class KSAdd implements Protocol
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { client.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		
 		return false;
 	}
