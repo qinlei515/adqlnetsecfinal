@@ -83,6 +83,7 @@ public class CSLogOn implements Protocol
 					//TODO: Politely tell the user?
 					return false;
 				}
+					
 				server.updateUser(BufferUtils.translateString(name), ipAddress);
 				server.sequenceIncrement();
 				Map<String, byte[]> onlineUsers = server.getOnlineUsers();

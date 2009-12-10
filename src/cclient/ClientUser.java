@@ -45,9 +45,6 @@ public class ClientUser
 	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
 	public static final String DEFAULT_KEY_SERVER = "127.0.0.1"; 
 	
-	CipherPair kSessionCipher;
-	CipherPair cSessionCipher;
-	
 	
 	public ClientUser()
 	{
@@ -207,7 +204,7 @@ public class ClientUser
 			if("".equals(userID) || userID == null)
 				System.out.println("Username error.");
 		}
-		System.out.println("Have you used this name before? (y/n)");
+		System.out.println("Have you registered with this user name? (y/n)");
 		String answer = "y";
 
 		try { answer = input.readLine(); }
@@ -225,7 +222,6 @@ public class ClientUser
 			if(gotKeys) { System.out.println("Successfully retrieved keys from server."); }
 			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
-			this.cSessionCipher = cSessionCipher;
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 			else return;
 			p = new CSLogOnRequest(userID, password, this);
@@ -235,7 +231,6 @@ public class ClientUser
 		else
 		{
 			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
-			this.kSessionCipher = kSessionCipher;
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			else return;
 			RSAPublicKey publicKey = generateKeys();
@@ -391,11 +386,12 @@ public class ClientUser
 		return null;
 	}
 	
-	public void logoff()
+	public boolean logoff()
 	{	
-	//	resetChatServer();
-	//	CipherPair sessionCipher = authenticate(getChatServer(), Constants.getKServerPrimaryKey());
+		resetChatServer();
+		CipherPair sessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
 		Protocol p = new CSLogOffRequest(userID, password, salt, this);
-		p.run(getChatServer(), cSessionCipher);
+		boolean b = p.run(getChatServer(), sessionCipher);
+		return b;
 	}
 }
