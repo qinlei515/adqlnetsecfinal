@@ -22,6 +22,8 @@ public class Constants
 {
 	public static final int CHAT_SERVER_PORT = 6417;
 	public static final int KEY_SERVER_PORT = 6473;
+	public static final int MESSAGE_PORT = 7418;
+	
 	public static final int RSA_KEY_SIZE = 1024;
 	public static final int RSA_BLOCK_SIZE = 128;
 	
@@ -175,4 +177,5 @@ public class Constants
 	}
 
 	public static final byte[] SERVER_KEY_RESET = "SKRESET".getBytes();
+	public static final int SESSION_KEY_SIZE = 128;
 }

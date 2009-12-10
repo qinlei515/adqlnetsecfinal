@@ -5,8 +5,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 import javax.crypto.Mac;
@@ -18,6 +22,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 
 public class KSPublicRequest implements Protocol {
@@ -32,7 +37,8 @@ public class KSPublicRequest implements Protocol {
 		this.ctname = ctname;
 	}
 	
-	@Override
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
+	
 	public boolean run(Socket server, CipherPair sessionCipher) {
 		try 
 		{
@@ -63,7 +69,7 @@ public class KSPublicRequest implements Protocol {
 					System.err.println("Could not retrieve " + ctname + "'s public key.");
 					return false;
 				}	
-				byte[] PublicKey = resp.get(1);
+				byte[] PublicKeyBytes = resp.get(1);
 				byte[] skhash = resp.get(2);
 				MessageDigest md = MessageDigest.getInstance(Constants.DH_HASH_ALG);
 				byte[] skhashc =  md.digest(sessionCipher.key.getEncoded());
@@ -72,7 +78,10 @@ public class KSPublicRequest implements Protocol {
 					System.err.println("Integrity check failed.");
 					return false;
 				}
-				user.AddPubKey(ctname, PublicKey);
+				KeyFactory kFactory = KeyFactory.getInstance("RSA");
+				X509EncodedKeySpec keySpec = new X509EncodedKeySpec(PublicKeyBytes);
+				RSAPublicKey publicKey = (RSAPublicKey)kFactory.generatePublic(keySpec);
+				user.AddPubKey(ctname, publicKey);
 				System.out.println("Successfully retrieved public key.");
 				return true;
 			}
@@ -80,6 +89,7 @@ public class KSPublicRequest implements Protocol {
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
 		catch (InvalidKeyException e) { e.printStackTrace(); } 
 		catch (IOException e) { e.printStackTrace(); }
+		catch (InvalidKeySpecException e) { e.printStackTrace(); }
 		return false;
 	}
 

@@ -18,6 +18,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 
 public class CSAddRequest implements Protocol 
@@ -32,27 +33,27 @@ public class CSAddRequest implements Protocol
 		this.password = password;
 	}
 	
-	public boolean run(Socket server, CipherPair sessionCipher) 
+	public boolean run(Connection c) 
 	{
 		try 
 		{
-			DataOutputStream toServer = new DataOutputStream(server.getOutputStream());
-			DataInputStream fromServer = new DataInputStream(server.getInputStream());
+			DataOutputStream toServer = new DataOutputStream(c.s.getOutputStream());
+			DataInputStream fromServer = new DataInputStream(c.s.getInputStream());
 			
 			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
-			hmac.init(sessionCipher.key);
-			sessionCipher.initEncrypt();
+			hmac.init(c.cipher.key);
+			c.cipher.initEncrypt();
 			
 			{
 				byte[] message = Common.createMessage(Requests.ADD, name.getBytes());
-				byte[] iv = sessionCipher.encrypt.getIV();
-				toServer.write(Common.wrapMessage(message, iv, hmac, sessionCipher));
+				byte[] iv = c.cipher.encrypt.getIV();
+				toServer.write(Common.wrapMessage(message, iv, hmac, c.cipher));
 			}
 			{
 				ArrayList<byte[]> resp = Common.getResponse(fromServer);
 				byte[] encrMessage = resp.get(0);
 				byte[] mac = resp.get(1);
-				byte[] message = sessionCipher.decrypt.doFinal(encrMessage);
+				byte[] message = c.cipher.decrypt.doFinal(encrMessage);
 				resp = Common.splitResponse(message);
 				byte[] allowed = resp.get(0);
 				byte[] nameCheck = resp.get(1);
@@ -75,7 +76,7 @@ public class CSAddRequest implements Protocol
 				MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
 				byte[] pwdHash = pwdHasher.digest(pwdPlusSalt);
 				byte[] pwdMac = hmac.doFinal(pwdHash);
-				byte[] encrPwd = sessionCipher.encrypt.doFinal(pwdHash);
+				byte[] encrPwd = c.cipher.encrypt.doFinal(pwdHash);
 				
 				toServer.write(Common.createMessage(encrPwd, pwdMac));
 			}
@@ -83,7 +84,7 @@ public class CSAddRequest implements Protocol
 				ArrayList<byte[]> confirm = Common.getResponse(fromServer);
 				byte[] encrConfirm = confirm.get(0);
 				byte[] mac = confirm.get(1);
-				byte[] confMessage = sessionCipher.decrypt.doFinal(encrConfirm);
+				byte[] confMessage = c.cipher.decrypt.doFinal(encrConfirm);
 				byte[] checkMac = hmac.doFinal(confMessage);
 				
 				if(!BufferUtils.equals(mac, checkMac))

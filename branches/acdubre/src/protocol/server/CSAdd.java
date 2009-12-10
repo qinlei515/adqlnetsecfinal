@@ -18,6 +18,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.cserver.CServer;
 
@@ -33,6 +34,8 @@ public class CSAdd implements Protocol
 		this.server = server;
 	}
 
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
+	
 	public boolean run(Socket client, CipherPair sessionCipher) 
 	{
 		try 

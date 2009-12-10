@@ -25,9 +25,13 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyAgreement;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import protocol.Protocol;
@@ -38,6 +42,7 @@ import sun.security.rsa.RSAKeyPairGenerator;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 
 public class ClientUser 
@@ -45,17 +50,15 @@ public class ClientUser
 	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
 	public static final String DEFAULT_KEY_SERVER = "127.0.0.1"; 
 	
-	
-	
 	public ClientUser()
 	{
-//		connections = new TreeMap<String, Socket>();
+		connections = new TreeMap<String, Connection>();
 		activeUsers = new TreeMap<String, String>();
-		UserPubKeys = new TreeMap<String, byte[]>();
+		UserPubKeys = new TreeMap<String, RSAPublicKey>();
 		chatServerIP = DEFAULT_CHAT_SERVER;
 		keyServerIP = DEFAULT_KEY_SERVER;
 		setChatServer(chatServerIP);
-		setKeyServer(chatServerIP);
+		setKeyServer(keyServerIP);
 	}
 	
 	protected String password;
@@ -105,36 +108,6 @@ public class ClientUser
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-//	protected Map<String, Socket> connections;
-//	
-//	public boolean addConnection(String user, Socket location)
-//	{
-//		if(connections.containsKey(user))
-//		{
-//			System.err.println("Cannot create connection to " + user + ": connection already exists.");
-//			return false;
-//		}
-//		else
-//		{
-//			connections.put(user, location);
-//			return true;
-//		}
-//	}
-//	
-//	public boolean closeConnection(String user)
-//	{
-//		if(!connections.containsKey(user))
-//		{
-//			System.err.println("Cannot close connection to " + user + ": no connection exists.");
-//			return false;
-//		}
-//		else
-//		{
-//			connections.remove(user);
-//			return true;
-//		}
-//	}
-	
 	protected TreeMap<String, String> activeUsers;
 	
 	public TreeMap<String, String> getUsers() { return activeUsers; }
@@ -142,13 +115,11 @@ public class ClientUser
 	public void removeUser(String uid) { activeUsers.remove(uid); }
 	
 	protected byte[] chatSequence;
+	
 	public void setSequence(byte[] sequence) { chatSequence = sequence; }
 	public byte[] sequence() { return chatSequence; }
+	public void incrementSequence() { Common.plusOne(chatSequence); }
 	
-
-//	protected RSAPublicKey publicKey;	
-//	public RSAPublicKey getPublicKey() { return publicKey; }
-
 	protected RSAPrivateKey privateKey;	
 	public RSAPrivateKey getPrivateKey() { return privateKey; }
 	
@@ -166,21 +137,36 @@ public class ClientUser
 	}
 	
 	
-	protected Map<String, byte[]> UserPubKeys;
-	public void AddPubKey(String name, byte[] PubKey) { UserPubKeys.put(name, PubKey); }
-	public byte[] getPublicKey(String name)
+	protected Map<String, RSAPublicKey> UserPubKeys;
+	public void AddPubKey(String name, RSAPublicKey PubKey) { UserPubKeys.put(name, PubKey); }
+	public RSAPublicKey getPublicKey(String name)
 	{
 		if(!UserPubKeys.containsKey(name))
 		{
 			resetKeyServer();
 			CipherPair sessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
 			Protocol p = new KSPublicRequest(this, name);
-			p.run(getKeyServer(), sessionCipher);
+			p.run(new Connection(getKeyServer(), sessionCipher));
 		}
 		return UserPubKeys.get(name);
 	}
 	
-	
+	protected Map<String, Connection> connections;
+	public Connection getConnection(String name) { return connections.get(name); }
+	public boolean addConnection(String name, Connection c)
+	{
+		if(!connections.containsKey(name))
+		{
+			connections.put(name, c);
+			return true;
+		}
+		else
+			return false;
+	}
+	public Connection removeConnection(String name)
+	{
+		return connections.remove(name);
+	}
 	/**
 	 * Get the username if it hasn't been entered.
 	 * Connect to the key server:
@@ -215,14 +201,14 @@ public class ClientUser
 			
 			Protocol p;
 			p = new KSPrivateRequest(password, this);
-			boolean gotKeys = p.run(getKeyServer(), kSessionCipher);
+			boolean gotKeys = p.run(new Connection(getKeyServer(), kSessionCipher));
 			if(gotKeys) { System.out.println("Successfully retrieved keys from server."); }
 			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 			else return;
 			p = new CSLogOnRequest(userID, password, this);
-			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
+			boolean loggedOn = p.run(new Connection(getChatServer(), cSessionCipher));
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
 		}
 		else
@@ -233,7 +219,7 @@ public class ClientUser
 			RSAPublicKey publicKey = generateKeys();
 			promptForPassword();
 			Protocol p = new KSAddRequest(userID, publicKey, getPrivateKey(), password);
-			boolean addSuccess = p.run(getKeyServer(), kSessionCipher);
+			boolean addSuccess = p.run(new Connection(getKeyServer(), kSessionCipher));
 			try { getKeyServer().close(); } 
 			catch (IOException e) { e.printStackTrace(); }
 			
@@ -244,29 +230,15 @@ public class ClientUser
 			if(cSessionCipher != null) { System.out.println("Chat server session key established."); }
 			else return;
 			p = new CSAddRequest(userID, password);
-			addSuccess = p.run(getChatServer(), cSessionCipher);
+			addSuccess = p.run(new Connection(getChatServer(), cSessionCipher));
 			
 			if(addSuccess) { System.out.println("User successfully added to chat server."); }
 			else return;
 			resetChatServer();
 			cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
 			p = new CSLogOnRequest(userID, password, this);
-			boolean loggedOn = p.run(getChatServer(), cSessionCipher);
+			boolean loggedOn = p.run(new Connection(getChatServer(), cSessionCipher));
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
-			
-			/* get her own public key, for testing purpose only */
-//			resetKeyServer();
-//			kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
-//			if(kSessionCipher != null)
-//			{
-//				p = new KSPublicRequest(this, this.userID);
-//				boolean gotkey = p.run(getKeyServer(), kSessionCipher);
-//				if(gotkey) { System.out.println("Successfully got public key."); }
-//			}
-//			else
-//			{
-//				System.err.println("Key Server authentication failed.");
-//			}
 		}
 	}
 	
@@ -296,6 +268,84 @@ public class ClientUser
 		return (RSAPublicKey)kp.getPublic();
 	}
 	
+	public byte[] authenticateToClient(PublicKey toSend, RSAPublicKey destKey)
+	{
+		try {
+			byte[] signed = Common.sign(toSend.getEncoded(), getPrivateKey());
+			byte[] message = 
+				Common.createMessage(getUserID().getBytes(), toSend.getEncoded(), signed);
+			
+			KeyGenerator kGen = KeyGenerator.getInstance(Constants.SESSION_KEY_ALG);
+			kGen.init(Constants.SESSION_KEY_SIZE);
+			SecretKey tempKey = kGen.generateKey();
+			Cipher tempCipher = Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
+			tempCipher.init(Cipher.ENCRYPT_MODE, tempKey);
+			byte[] iv = tempCipher.getIV();
+			byte[] keyBytes = tempKey.getEncoded();
+			byte[] encrMessage = tempCipher.doFinal(message);
+			
+			tempCipher = Cipher.getInstance("RSA");
+			tempCipher.init(Cipher.ENCRYPT_MODE, destKey);
+			byte[] encrKey = tempCipher.doFinal(keyBytes);
+			
+			return Common.createMessage(encrKey, iv, encrMessage);
+		}
+		catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		}
+		catch (InvalidKeyException e) {
+			e.printStackTrace();
+		}
+		catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		}
+		catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public ArrayList<byte[]> unwrapClientAuthMessage(ArrayList<byte[]> message)
+	{
+		byte[] encrKey = message.get(0);
+		byte[] iv = message.get(1);
+		byte[] encrMessage = message.get(2);
+		
+		try {
+			Cipher tempCipher = Cipher.getInstance("RSA");
+			tempCipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+			byte[] tempKey = tempCipher.doFinal(encrKey);
+			tempCipher = 
+				Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
+			tempCipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(tempKey, 
+					Constants.SESSION_KEY_ALG), new IvParameterSpec(iv));
+		
+			return Common.splitResponse(tempCipher.doFinal(encrMessage));
+		}
+		catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		}
+		catch (InvalidKeyException e) {
+			e.printStackTrace();
+		}
+		catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		}
+		catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	public CipherPair authenticate(Socket server, RSAPublicKey serverKey)
 	{
 		try 
@@ -317,7 +367,7 @@ public class ClientUser
 			{
 				//TODO: Update the server's primary and secondary public keys.
 			}			
-			CipherPair sessionCipher = authenticateServerResponse(resp, kPair, serverKey);
+			CipherPair sessionCipher = authenticateResponse(resp, kPair, serverKey);
 			return sessionCipher;
 		}
 		catch (IOException e) { e.printStackTrace(); } 
@@ -328,7 +378,7 @@ public class ClientUser
 		return null;
 	}
 	
-	public CipherPair authenticateServerResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey serverKey)
+	public CipherPair authenticateResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey srcKey)
 	{
 		byte[] signedDHKeyHash = response.get(0);
 		byte[] dhKeyBytes = response.get(1);
@@ -337,9 +387,9 @@ public class ClientUser
 		
 		// Authenticate the message.
 		// Check the signature.
-		if(!Common.verify(signedDHKeyHash, dhKeyBytes, serverKey))
+		if(!Common.verify(signedDHKeyHash, dhKeyBytes, srcKey))
 		{
-			System.err.println("Server key response did not match hash.");
+			System.err.println("Key response did not match hash.");
 			return null;
 		}
 
