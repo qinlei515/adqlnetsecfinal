@@ -4,6 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import protocol.Protocol;
+import protocol.client.ConnectionRequest;
+
+import utils.Common;
+import utils.Connection;
+
 public class ClientUI 
 {
 	protected ClientUser user;
@@ -53,7 +59,7 @@ public class ClientUI
 			else if((command.equals("m") || command.equals("message")))
 			{
 				System.out.println("Sending " + target + " \"" + message + "\"");
-				user.getPublicKey(target);
+				message(target, message);
 			}
 			else if((command.equals("exit")))
 			{
@@ -67,6 +73,22 @@ public class ClientUI
 			else if(command.equals("help")) { printHelp(); }
 			else { System.err.println("Command: " + command + " not recognized."); }
 		}
+	}
+	
+	private void message(String name, String message)
+	{
+		Connection c = user.getConnection(name);
+		if(c == null)
+		{
+			Protocol p = new ConnectionRequest(name, user);
+			p.run(new Connection());
+			c = user.getConnection(name);
+		}
+		try 
+		{
+			c.s.getOutputStream().write(Common.wrapMessage(message.getBytes(), c.hmac, c.cipher));
+		}
+		catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	private void printHelp()

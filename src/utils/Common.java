@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 
@@ -16,13 +17,13 @@ import javax.crypto.Mac;
 
 public class Common 
 {
-	
+
 	// Challenge 1: Prove we're here.
 	public static byte[] handleChallenge1(DataInputStream fromServer) throws IOException
 	{
 		return getResponseComponent(fromServer);
 	}
-	
+
 	// Challenge 2: Guess-the-number
 	public static byte[] handleChallenge2(DataInputStream fromServer) throws NoSuchAlgorithmException, IOException
 	{
@@ -32,7 +33,7 @@ public class Common
 		Common.guessTheNumber(resp.get(0), number);
 		return createMessage(number);
 	}
-	
+
 	protected static byte[] getResponseComponent(DataInputStream from) throws IOException
 	{
 		int responseSize = BufferUtils.translate(from.read(), from.read());
@@ -40,7 +41,7 @@ public class Common
 		from.read(response);
 		return response;
 	}
-	
+
 	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException
 	{
 		int numComponents = BufferUtils.translate(from.read(), from.read());
@@ -51,7 +52,7 @@ public class Common
 		}
 		return answer;
 	}
-	
+
 	public static ArrayList<byte[]> splitResponse(byte[] resp)
 	{
 		int numComponents = BufferUtils.translate(resp[0], resp[1]);
@@ -67,18 +68,18 @@ public class Common
 		}
 		return answer;
 	}
-	
+
 	public static byte[] createMessage(byte[]... components)
 	{
 		int messageLength = 0;
 		for(int i = 0; i < components.length; i++)
 			messageLength += (components[i].length + 2);
-		
+
 		byte[] answer = new byte[messageLength+2];
-		
+
 		// Start with the length of the message
 		BufferUtils.copy(BufferUtils.translate(components.length), answer, 2);
-		
+
 		int pos = 2;
 		for(int i = 0; i < components.length; i++)
 		{
@@ -91,18 +92,18 @@ public class Common
 		}
 		return answer;
 	}
-	
+
 	public static byte[] createMessage(ArrayList<byte[]> components)
 	{
 		int messageLength = 0;
 		for(int i = 0; i < components.size(); i++)
 			messageLength += (components.get(i).length + 2);
-		
+
 		byte[] answer = new byte[messageLength+2];
-		
+
 		// Start with the length of the message
 		BufferUtils.copy(BufferUtils.translate(components.size()), answer, 2);
-		
+
 		int pos = 2;
 		for(int i = 0; i < components.size(); i++)
 		{
@@ -115,7 +116,7 @@ public class Common
 		}
 		return answer;
 	}
-	
+
 	public static void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
 	{
 		MessageDigest md = MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG);
@@ -130,7 +131,7 @@ public class Common
 			done = BufferUtils.equals(hash, ourHash);
 		}
 	}
-	
+
 	// Interpret number as an integer; add one to it.
 	public static void plusOne(byte[] number)
 	{
@@ -142,24 +143,40 @@ public class Common
 		}
 		number[i]++;
 	}
+
+	public static byte[] sign(byte[] toSign, RSAPrivateKey key)
+	{
+		try
+        {
+    		Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
+    		sig.initSign(key);
+    		sig.update(toSign);
+    		return sig.sign();
+        }
+        // Should be unreachable.
+        catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+        catch (SignatureException e) { e.printStackTrace(); } 
+        catch (InvalidKeyException e) { e.printStackTrace(); } 
+        return null;
+	}
 	
-	public static boolean verify(byte[] signed, byte[] expected, RSAPublicKey key)
-    {
-            try
-            {
-            	Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
-            	sig.initVerify(key);
-            	sig.update(expected);
-            	return sig.verify(signed);
-            }
-            // Should be unreachable.
-            catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
-            //TODO: Handle corrupted etc. key files.
-            catch (InvalidKeyException e) { e.printStackTrace(); } 
-            catch (SignatureException e) { e.printStackTrace(); } 
-            return false;
-    }
-	
+	public static boolean verify(byte[] signed, byte[] message, RSAPublicKey key)
+	{
+		try
+		{
+			Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
+			sig.initVerify(key);
+			sig.update(message);
+			return sig.verify(signed);
+		}
+		// Should be unreachable.
+		catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
+		//TODO: Handle corrupted etc. key files.
+		catch (InvalidKeyException e) { e.printStackTrace(); } 
+		catch (SignatureException e) { e.printStackTrace(); } 
+		return false;
+	}
+
 	public static byte[] wrapMessage(byte[] message, Mac hmac, CipherPair sessionCipher)
 	{
 		try 
@@ -172,7 +189,7 @@ public class Common
 		catch (BadPaddingException e) { e.printStackTrace(); }
 		return null;
 	}
-	
+
 	public static byte[] wrapMessage(byte[] message, byte[] iv, Mac hmac, CipherPair sessionCipher)
 	{
 		try 
@@ -185,7 +202,7 @@ public class Common
 		catch (BadPaddingException e) { e.printStackTrace(); }
 		return null;
 	}
-	
+
 	/**
 	 * Does mac match the decrypted message?
 	 * 
@@ -208,7 +225,7 @@ public class Common
 		catch (BadPaddingException e) { e.printStackTrace(); }
 		return null;
 	}
-	
+
 	public static byte[] checkIntegrity(ArrayList<byte[]> resp, Mac hmac, CipherPair sessionCipher)
 	{
 		return checkIntegrity(resp.get(0), resp.get(1), hmac, sessionCipher);

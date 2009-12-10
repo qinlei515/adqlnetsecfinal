@@ -17,6 +17,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.Password;
 import utils.cserver.CServer;
@@ -33,6 +34,8 @@ public class CSLogOn implements Protocol
 		this.pwd = server.getUser(BufferUtils.translateString(name));
 		this.server = server;
 	}
+	
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
 	
 	public boolean run(Socket client, CipherPair sessionCipher) 
 	{
@@ -91,7 +94,10 @@ public class CSLogOn implements Protocol
 				}
 				message = Common.createMessage(Requests.LOG_OFF, server.sequence());
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
-				return true;
+				return new ChatLogBroadcast(server,
+						BufferUtils.translateString(name),
+						ipAddress,
+						Requests.LOG_ON).run(null, null);
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 

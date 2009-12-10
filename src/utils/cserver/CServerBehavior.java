@@ -22,6 +22,7 @@ import protocol.server.CSUpdate;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.server.Server;
 import utils.server.ServerBehavior;
@@ -82,7 +83,7 @@ public class CServerBehavior implements ServerBehavior
 				BufferUtils.println(request.get(0));
 				p = new BadRequest();
 			}
-			if(p.run(connection, sessionCipher)) 
+			if(p.run(new Connection(connection, sessionCipher))) 
 				System.out.println("Protocol completed successfully.");
 			
 			connection.close();
