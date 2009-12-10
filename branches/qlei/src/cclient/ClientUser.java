@@ -45,6 +45,8 @@ public class ClientUser
 	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
 	public static final String DEFAULT_KEY_SERVER = "127.0.0.1"; 
 	
+	CipherPair kSessionCipher;
+	CipherPair cSessionCipher;
 	
 	
 	public ClientUser()
@@ -59,6 +61,10 @@ public class ClientUser
 	}
 	
 	protected String password;
+	protected byte[] salt;
+	
+	public byte[] getSalt() { return salt; }
+	public void setSalt(byte[] salt) { this.salt = salt; }
 	
 	protected String userID;
 	
@@ -219,6 +225,7 @@ public class ClientUser
 			if(gotKeys) { System.out.println("Successfully retrieved keys from server."); }
 			
 			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			this.cSessionCipher = cSessionCipher;
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 			else return;
 			p = new CSLogOnRequest(userID, password, this);
@@ -228,6 +235,7 @@ public class ClientUser
 		else
 		{
 			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			this.kSessionCipher = kSessionCipher;
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			else return;
 			RSAPublicKey publicKey = generateKeys();
@@ -381,5 +389,13 @@ public class ClientUser
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		return null;
+	}
+	
+	public void logoff()
+	{	
+	//	resetChatServer();
+	//	CipherPair sessionCipher = authenticate(getChatServer(), Constants.getKServerPrimaryKey());
+		Protocol p = new CSLogOffRequest(userID, password, salt, this);
+		p.run(getChatServer(), cSessionCipher);
 	}
 }

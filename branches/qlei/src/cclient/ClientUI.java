@@ -50,10 +50,15 @@ public class ClientUI
 				for(String uid : user.getUsers().keySet())
 					System.out.println(uid + " " + user.getUsers().get(uid));
 			}
-			else if((command.equals("m") || command.equals("message")))
+			else if((command.equals("send") || command.equals("m")))
 			{
 				System.out.println("Sending " + target + " \"" + message + "\"");
 				user.getPublicKey(target);
+			}
+			else if((command.equals("logoff")))
+			{
+				System.out.println("Logging off");
+				user.logoff();
 			}
 			else if((command.equals("exit")))
 			{
@@ -75,7 +80,8 @@ public class ClientUI
 		System.out.println("  u, user <userID>: Set the current user.");
 		System.out.println("  cs, chat-server <chat server IP>: Set the chat server IP.");
 		System.out.println("  clogin: Login to the current chat server.");
-		System.out.println("  m, message <userID> <message>: Send a message to userID.");
+		System.out.println("  logoff: Logoff current user to chat server.");
+		System.out.println("  send, send <userID> <message>: Send a message to userID.");
 		System.out.println("  ks, key-server <key server IP>: Set the key server IP.");
 		System.out.println("  kgen: Generate a new public/private key pair.");
 		System.out.println("  kget: Retrieve the public/private key pair of the current user.");
