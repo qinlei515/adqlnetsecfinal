@@ -9,10 +9,12 @@ public class ClientMain
 	public static void main(String[] args)
 	{
 		ClientUser c = processCommandLine(args);
-		ClientServer s = new ClientServer(c);
+		ClientUI ui = new ClientUI(c);
+		ClientServer s = new ClientServer(ui);
+		
 		c.initialize();
 		s.run();
-		ClientUI ui = new ClientUI(c);
+		
 		ui.run();
 	}
 	

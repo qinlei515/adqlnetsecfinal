@@ -21,7 +21,7 @@ public class ClientConnectionHandler implements Runnable
 	
 	public void run() 
 	{
-		p.run(new Connection(connection, null));
+		p.run(new Connection(connection));
 	}
 	
 }

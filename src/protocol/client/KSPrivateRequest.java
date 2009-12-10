@@ -127,6 +127,7 @@ public class KSPrivateRequest implements Protocol
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); }
 		catch (BadPaddingException e) { e.printStackTrace(); }
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
+		catch (IndexOutOfBoundsException e) { System.err.println("Connection error."); }
 		return false;
 	}
 
