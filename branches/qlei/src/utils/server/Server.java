@@ -16,8 +16,6 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -103,19 +101,19 @@ public class Server
 				this.primaryPub = (RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(keySpec);
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file: " + primaryPubFile + " not found."); }
-			try
-			{
-				File keyFile = new File(secondaryFile);
-				FileInputStream keyInFile = new FileInputStream(keyFile);
-				DataInputStream keyIn = new DataInputStream(keyInFile);
-				byte[] keyBytes = new byte[(int)keyFile.length()];
-				keyIn.read(keyBytes);
-				keyIn.close();
-				keyInFile.close();
-				PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-				this.secondary = (RSAPrivateKey)KeyFactory.getInstance("RSA").generatePrivate(keySpec);
-			}
-			catch(FileNotFoundException e) { System.err.println("Server key file: " + secondaryFile + " not found."); }
+//			try
+//			{
+//				File keyFile = new File(secondaryFile);
+//				FileInputStream keyInFile = new FileInputStream(keyFile);
+//				DataInputStream keyIn = new DataInputStream(keyInFile);
+//				byte[] keyBytes = new byte[(int)keyFile.length()];
+//				keyIn.read(keyBytes);
+//				keyIn.close();
+//				keyInFile.close();
+//				PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+//				this.secondary = (RSAPrivateKey)KeyFactory.getInstance("RSA").generatePrivate(keySpec);
+//			}
+//			catch(FileNotFoundException e) { System.err.println("Server key file: " + secondaryFile + " not found."); }
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidKeySpecException e) { e.printStackTrace(); } 
@@ -124,18 +122,7 @@ public class Server
 	
 	public byte[] sign(byte[] toSign)
     {
-    	try
-        {
-    		Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
-    		sig.initSign(primary);
-    		sig.update(toSign);
-    		return sig.sign();
-        }
-        // Should be unreachable.
-        catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
-        catch (SignatureException e) { e.printStackTrace(); } 
-        catch (InvalidKeyException e) { e.printStackTrace(); } 
-        return null;
+    	return Common.sign(toSign, primary);
     }
 	
 	public CipherPair authenticate(Socket client)
@@ -262,8 +249,7 @@ public class Server
 			try 
 			{ 
 				Socket connection = getAccepter().accept();
-				Thread t = new Thread(new ConnectionHandler(connection, this));
-				t.run();
+				new Thread(new ConnectionHandler(connection, this)).run();
 			} 
 			catch (IOException e) { e.printStackTrace(); }
 		}

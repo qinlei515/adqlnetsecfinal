@@ -18,6 +18,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 
 public class CSLogOnRequest implements Protocol 
@@ -32,6 +33,8 @@ public class CSLogOnRequest implements Protocol
 		this.password = password;
 		this.thisUser = thisUser;
 	}
+	
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
 	
 	public boolean run(Socket server, CipherPair sessionCipher) 
 	{
@@ -66,7 +69,6 @@ public class CSLogOnRequest implements Protocol
 					return false;
 				}
 				byte[] salt = resp.get(1);
-				thisUser.setSalt(salt);
 				
 				byte[] pwdPlusSalt = BufferUtils.concat(password.getBytes(), salt);
 				byte[] pwdHash = pwdHasher.digest(pwdPlusSalt);
@@ -97,6 +99,7 @@ public class CSLogOnRequest implements Protocol
 					{
 						moreUsers = false;
 						thisUser.setSequence(resp.get(1));
+						thisUser.incrementSequence();
 					}
 				}
 				return true;

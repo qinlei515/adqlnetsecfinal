@@ -14,6 +14,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.kserver.KServer;
 
@@ -29,7 +30,8 @@ public class KSPublic implements Protocol {
 		this.server = server;
 	}
 	
-	@Override
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
+	
 	public boolean run(Socket client, CipherPair sessionCipher) {
 		try 
 		{

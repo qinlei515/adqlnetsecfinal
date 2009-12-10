@@ -18,6 +18,7 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
+import utils.Connection;
 import utils.Constants;
 import utils.kserver.KServer;
 import utils.kserver.UserKeyData;
@@ -46,6 +47,8 @@ public class KSAdd implements Protocol
 		try { hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 	}
+	
+	public boolean run(Connection c) { return run(c.s, c.cipher); }
 	
 	/**
 	 * Returns whether the user was added.
