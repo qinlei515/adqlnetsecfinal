@@ -57,6 +57,7 @@ public class CSLogOff implements Protocol {
 			}
 			byte[] message = Common.createMessage(Requests.CONFIRM);
 			toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
+			server.logOffUser(BufferUtils.translateString(name));
 			return true;
 		}
 		catch (IOException e) { e.printStackTrace(); } 

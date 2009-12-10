@@ -58,8 +58,19 @@ public class ClientUI
 			else if((command.equals("logoff")))
 			{
 				System.out.println("Logging off");
-				user.logoff();
+				if(user.logoff())
+				{
+					System.out.println("Logged off successfully, you can log in" +
+							"as another user");
+					try { if(user.getChatServer() != null) user.getChatServer().close(); } 
+					catch (IOException e) { e.printStackTrace(); }
+					try { if(user.getKeyServer() != null) user.getKeyServer().close(); } 
+					catch (IOException e) { e.printStackTrace(); }
+					active = false;
+				}
 			}
+			
+			/* difference of logoff and exit? */
 			else if((command.equals("exit")))
 			{
 				System.out.println("Goodbye.");
