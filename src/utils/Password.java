@@ -6,7 +6,9 @@ package utils;
  */
 public class Password 
 {
+	// hash(hash(pwd|salt))
 	public byte[] pwd2Hash;
+	// The salt value
 	public byte[] salt;
 	
 	public Password() {}

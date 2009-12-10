@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import utils.BufferUtils;
-import utils.Constants;
+import utils.constants.Ports;
 import utils.server.Server;
 
 public class KServer extends Server 
@@ -50,7 +50,7 @@ public class KServer extends Server
 	
 	public KServer()
 	{
-		super(Constants.KEY_SERVER_PORT, new KServerBehavior(), PRIMARY_KEY, PRIMARY_PUB_KEY, SECONDARY_KEY);
+		super(Ports.KEY_SERVER_PORT, new KServerBehavior(), PRIMARY_KEY, PRIMARY_PUB_KEY, SECONDARY_KEY);
 		behavior.setServer(this);
 		users = new TreeMap<String, UserKeyData>();
 	}

@@ -12,6 +12,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -35,6 +36,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import protocol.Protocol;
+import protocol.Requests;
 import protocol.client.*;
 
 
@@ -43,8 +45,17 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.constants.Keys;
+import utils.constants.Ports;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Information and behaviors of a client. Primarily stores keys, server connections
+ * and client-client connections.
+ * 
+ * @author Alex Dubreuil, Lei Qin
+ */
 public class ClientUser 
 {
 	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
@@ -74,15 +85,16 @@ public class ClientUser
 	public Socket getChatServer() { return chatServer; }
 	public void setChatServer(String chatServerIP) 
 	{ 
-		try { this.chatServer = new Socket(chatServerIP, Constants.CHAT_SERVER_PORT); } 
+		try { this.chatServer = new Socket(chatServerIP, Ports.CHAT_SERVER_PORT); } 
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); } 
 	}
+	// Close the chat server connection if it's open and open a new connection.
 	public void resetChatServer()
 	{
 		try { chatServer.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
-		try { chatServer = new Socket(chatServerIP, Constants.CHAT_SERVER_PORT); }
+		try { chatServer = new Socket(chatServerIP, Ports.CHAT_SERVER_PORT); }
 		catch (UnknownHostException e) { e.printStackTrace(); }
 		catch (IOException e) { e.printStackTrace(); }
 	}
@@ -94,20 +106,22 @@ public class ClientUser
 	public Socket getKeyServer() { return keyServer; }
 	public void setKeyServer(String keyServerIP) 
 	{ 	
-		try { this.keyServer = new Socket(keyServerIP, Constants.KEY_SERVER_PORT); } 
+		try { this.keyServer = new Socket(keyServerIP, Ports.KEY_SERVER_PORT); } 
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); }
 	}
-	
+	// Close the key server connection if it's open and open a new connection.
 	public void resetKeyServer()
 	{
 		try { keyServer.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
-		try { keyServer = new Socket(keyServerIP, Constants.KEY_SERVER_PORT); }
+		try { keyServer = new Socket(keyServerIP, Ports.KEY_SERVER_PORT); }
 		catch (UnknownHostException e) { e.printStackTrace(); }
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
+	// The users currently logged in to the chat server
+	// Mapped to a String representation of their IP addresses.
 	protected TreeMap<String, String> activeUsers;
 	
 	public TreeMap<String, String> getUsers() { return activeUsers; }
@@ -118,11 +132,16 @@ public class ClientUser
 	
 	public void setSequence(byte[] sequence) { chatSequence = sequence; }
 	public byte[] sequence() { return chatSequence; }
-	public void incrementSequence() { Common.plusOne(chatSequence); }
+	public void incrementSequence() { BufferUtils.plusOne(chatSequence); }
 	
 	protected RSAPrivateKey privateKey;	
 	public RSAPrivateKey getPrivateKey() { return privateKey; }
 	
+	/**
+	 * Sets this user's private key.
+	 * 
+	 * @param privKeyBytes
+	 */
 	public void setKey(byte[] privKeyBytes)
 	{
 		try 
@@ -136,21 +155,23 @@ public class ClientUser
 		catch (InvalidKeySpecException e) { e.printStackTrace(); }
 	}
 	
-	
+	// Map of usernames to public keys. 
 	protected Map<String, RSAPublicKey> UserPubKeys;
 	public void AddPubKey(String name, RSAPublicKey PubKey) { UserPubKeys.put(name, PubKey); }
+	// Retrieve's a users public key, from the server if necessary.
 	public RSAPublicKey getPublicKey(String name)
 	{
 		if(!UserPubKeys.containsKey(name))
 		{
 			resetKeyServer();
-			CipherPair sessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			CipherPair sessionCipher = authenticate(getKeyServer(), Keys.getKServerPrimaryKey());
 			Protocol p = new KSPublicRequest(this, name);
 			p.run(new Connection(getKeyServer(), sessionCipher));
 		}
 		return UserPubKeys.get(name);
 	}
 	
+	// Open, authenticated connections between two clients.
 	protected Map<String, Connection> connections;
 	public Connection getConnection(String name) { return connections.get(name); }
 	public Map<String, Connection> connections() { return connections; }
@@ -174,6 +195,7 @@ public class ClientUser
 	 * - Retrieve keys if possible
 	 * - Set keys otherwise
 	 * Connect to the chat server:
+	 * - Add the user if necessary
 	 * - Login + populate the activeUsers Map 
 	 */
 	public void initialize()
@@ -195,7 +217,7 @@ public class ClientUser
 		catch(IOException e) { e.printStackTrace(); }
 		if("y".equals(answer))
 		{
-			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			CipherPair kSessionCipher = authenticate(getKeyServer(), Keys.getKServerPrimaryKey());
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			
 			promptForPassword();
@@ -205,7 +227,7 @@ public class ClientUser
 			boolean gotKeys = p.run(new Connection(getKeyServer(), kSessionCipher));
 			if(gotKeys) { System.out.println("Successfully retrieved keys from server."); }
 			
-			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			CipherPair cSessionCipher = authenticate(getChatServer(), Keys.getCServerPrimaryKey());
 			if(cSessionCipher != null) System.out.println("Chat server session key established.");
 			else return;
 			p = new CSLogOnRequest(userID, password, this);
@@ -214,7 +236,7 @@ public class ClientUser
 		}
 		else
 		{
-			CipherPair kSessionCipher = authenticate(getKeyServer(), Constants.getKServerPrimaryKey());
+			CipherPair kSessionCipher = authenticate(getKeyServer(), Keys.getKServerPrimaryKey());
 			if(kSessionCipher != null) System.out.println("Key server session established.");
 			else return;
 			RSAPublicKey publicKey = generateKeys();
@@ -227,7 +249,7 @@ public class ClientUser
 			if(addSuccess) { System.out.println("User successfully added to key server."); }
 			else return;
 			
-			CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			CipherPair cSessionCipher = authenticate(getChatServer(), Keys.getCServerPrimaryKey());
 			if(cSessionCipher != null) { System.out.println("Chat server session key established."); }
 			else return;
 			p = new CSAddRequest(userID, password);
@@ -236,15 +258,14 @@ public class ClientUser
 			if(addSuccess) { System.out.println("User successfully added to chat server."); }
 			else return;
 			resetChatServer();
-			cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+			cSessionCipher = authenticate(getChatServer(), Keys.getCServerPrimaryKey());
 			p = new CSLogOnRequest(userID, password, this);
 			boolean loggedOn = p.run(new Connection(getChatServer(), cSessionCipher));
 			if(loggedOn) { System.out.println("Successfully logged in to chat server."); }
 		}
 	}
 	
-
-	
+	// Get the user's password.
 	protected void promptForPassword()
 	{
 		BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
@@ -252,6 +273,7 @@ public class ClientUser
 		while(!validPassword)
 		{
 			System.out.println("Please enter your password:");
+			// TODO: Mask the password.
 			try { password = input.readLine(); } 
 			catch (IOException e) { e.printStackTrace(); }
 			// TODO: Add password validity tests.
@@ -259,16 +281,26 @@ public class ClientUser
 		}
 	}
 	
+	// Generate a fresh RSA key for a new user.
 	protected RSAPublicKey generateKeys()
 	{
 		RSAKeyPairGenerator gen = new RSAKeyPairGenerator();
-		gen.initialize(Constants.RSA_KEY_SIZE, new SecureRandom());
+		gen.initialize(CipherInfo.RSA_KEY_SIZE, new SecureRandom());
 		KeyPair kp = gen.generateKeyPair();
 		
 		privateKey = (RSAPrivateKey)kp.getPrivate();
 		return (RSAPublicKey)kp.getPublic();
 	}
 	
+	/**
+	 * Create an authentication message for another client. The message is, in effect:
+	 * 
+	 * {this.getUserID(), [g^a mod p]this.getPrivateKey()}destKey
+	 * 
+	 * @param toSend Our DH public key.
+	 * @param destKey Public key of the destination client
+	 * @return The raw bytes to send to the destination
+	 */
 	public byte[] authenticateToClient(PublicKey toSend, RSAPublicKey destKey)
 	{
 		try {
@@ -276,10 +308,10 @@ public class ClientUser
 			byte[] message = 
 				Common.createMessage(getUserID().getBytes(), toSend.getEncoded(), signed);
 			
-			KeyGenerator kGen = KeyGenerator.getInstance(Constants.SESSION_KEY_ALG);
-			kGen.init(Constants.SESSION_KEY_SIZE);
+			KeyGenerator kGen = KeyGenerator.getInstance(CipherInfo.SESSION_KEY_ALG);
+			kGen.init(CipherInfo.SESSION_KEY_SIZE);
 			SecretKey tempKey = kGen.generateKey();
-			Cipher tempCipher = Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
+			Cipher tempCipher = Cipher.getInstance(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE);
 			tempCipher.init(Cipher.ENCRYPT_MODE, tempKey);
 			byte[] iv = tempCipher.getIV();
 			byte[] keyBytes = tempKey.getEncoded();
@@ -309,6 +341,12 @@ public class ClientUser
 		return null;
 	}
 	
+	/**
+	 * Inverse operation of authenticateToClient - pull the information out of such a message.
+	 * 
+	 * @param message The raw bytes received.
+	 * @return
+	 */
 	public ArrayList<byte[]> unwrapClientAuthMessage(ArrayList<byte[]> message)
 	{
 		byte[] encrKey = message.get(0);
@@ -320,9 +358,9 @@ public class ClientUser
 			tempCipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
 			byte[] tempKey = tempCipher.doFinal(encrKey);
 			tempCipher = 
-				Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
+				Cipher.getInstance(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE);
 			tempCipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(tempKey, 
-					Constants.SESSION_KEY_ALG), new IvParameterSpec(iv));
+					CipherInfo.SESSION_KEY_ALG), new IvParameterSpec(iv));
 		
 			return Common.splitResponse(tempCipher.doFinal(encrMessage));
 		}
@@ -347,6 +385,13 @@ public class ClientUser
 		return null;
 	}
 	
+	/**
+	 * Create an authentication request for a server, receive and verify the server's response.
+	 * 
+	 * @param server The server to authenticate to.
+	 * @param serverKey The key of server.
+	 * @return A Cipher with decrypt initialize (encrypt uninitialized).
+	 */
 	public CipherPair authenticate(Socket server, RSAPublicKey serverKey)
 	{
 		try 
@@ -355,30 +400,43 @@ public class ClientUser
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
 			
 			KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
-			dhGen.initialize(Constants.getDHParameters());
+			dhGen.initialize(Keys.getDHParameters());
 			KeyPair kPair = dhGen.generateKeyPair();
 			PublicKey pubKey = kPair.getPublic();
 		
-			toServer.write(Common.createMessage(pubKey.getEncoded(), Constants.getKServerKeyHash()));
+			toServer.write(Common.createMessage(pubKey.getEncoded(), Keys.getKServerKeyHash()));
 			// TODO: For simplicity, we currently assume we will receive the challenge from the server.
-			toServer.write(Common.handleChallenge2(fromServer));
+			toServer.write(handleChallenge2(fromServer));
 			
 			ArrayList<byte[]> resp = Common.getResponse(fromServer);
-			if(BufferUtils.equals(resp.get(0), Constants.SERVER_KEY_RESET))
+			if(BufferUtils.equals(resp.get(0), Requests.SERVER_KEY_RESET))
 			{
 				//TODO: Update the server's primary and secondary public keys.
 			}			
-			CipherPair sessionCipher = authenticateResponse(resp, kPair, serverKey);
-			return sessionCipher;
+			return authenticateResponse(resp, kPair, serverKey);
 		}
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidAlgorithmParameterException e) { e.printStackTrace(); }
 		// Should be unreachable.
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		// Return null if we escape the try
 		return null;
 	}
 	
+	/**
+	 * Verify an authentication response from a server.
+	 * 
+	 * @param response The split response (calculated directly from the raw byte response)
+	 * @param ourKey Our DH key.
+	 * @param srcKey The public key of the server.
+	 * @return A Cipher with decrypt initialize (encrypt uninitialized).
+	 */
 	public CipherPair authenticateResponse(ArrayList<byte[]> response, KeyPair ourKey, RSAPublicKey srcKey)
 	{
 		byte[] signedDHKeyHash = response.get(0);
@@ -407,14 +465,14 @@ public class ClientUser
 			ka.doPhase(serverDHKey, true);
 			
 			// Generates a 256-bit secret by default.
-			SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
+			SecretKey sessionKey = ka.generateSecret(CipherInfo.SESSION_KEY_ALG);
 			// Simplify it to a 128-bit key for compatibility.
 			// TODO: Is it secure to grab the first 16 bytes?
 			sessionKey = 
-				new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+				new SecretKeySpec(sessionKey.getEncoded(), 0, 16, CipherInfo.SESSION_KEY_ALG);
 			
 			CipherPair sessionCipher = 
-				new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+				new CipherPair(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE, sessionKey);
 			
 			sessionCipher.initDecrypt(iv);
 			byte[] authCheck = sessionCipher.decrypt.doFinal(auth);
@@ -433,21 +491,72 @@ public class ClientUser
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		return null;
 	}
+	
+	// Log of from the chat server.
 	public void chatLogOff() 
 	{
 		resetChatServer();
-		CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+		CipherPair cSessionCipher = authenticate(getChatServer(), Keys.getCServerPrimaryKey());
 		Protocol p = new CSLogOffRequest(userID, password, this);
 		boolean loggedOff = p.run(new Connection(getChatServer(), cSessionCipher));
 		if(loggedOff) { System.out.println("Successfully logged out from chat server."); }
 	}
+	
+	// Close all client-client connections.
 	public void closeConnections() 
 	{
 		for(String name : connections.keySet())
 		{
-			connections.get(name).close();
-			connections.remove(name);
-		}
-		
+			try { connections.remove(name).s.close(); }
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}	
 	}
+	
+	// Challenge 1: Prove we're here.
+	// TODO: Unused. Needs to be redesigned using UDP.
+	public ArrayList<byte[]> handleChallenge1(DataInputStream fromServer) throws IOException
+	{
+		try {
+			return Common.getResponse(fromServer);
+		}
+		catch (ConnectionClosedException e) {
+			try { fromServer.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+		return null;
+	}
+
+	// Challenge 2: Guess-the-number
+	public byte[] handleChallenge2(DataInputStream fromServer) throws NoSuchAlgorithmException, IOException, ConnectionClosedException
+	{
+		ArrayList<byte[]> resp = Common.getResponse(fromServer);
+		byte[] number = new byte[resp.get(1).length];
+		BufferUtils.copy(resp.get(1), number, number.length);
+		guessTheNumber(resp.get(0), number);
+		return Common.createMessage(number);
+	}
+	
+	/**
+	 * Brute-force guess the number with hash(n) = hash.
+	 * Mutates given to solve and the solution is also stored in given.
+	 */
+	public void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
+	{
+		MessageDigest md = MessageDigest.getInstance(CipherInfo.CHALLENGE_HASH_ALG);
+		md.update(given);
+		byte[] ourHash = md.digest();
+		boolean done = BufferUtils.equals(hash, ourHash);
+		while(!done)
+		{
+			BufferUtils.plusOne(given);
+			md.update(given);
+			ourHash = md.digest();
+			done = BufferUtils.equals(hash, ourHash);
+		}
+	}
+
 }

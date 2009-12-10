@@ -15,10 +15,16 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
 import utils.kserver.KServer;
 
-
+/**
+ * Response to a KSPublic request (you're sensing a pattern, aren't you?).
+ * Retrieves a user's public key.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class KSPublic implements Protocol {
 
 	protected byte[] ctname;
@@ -37,10 +43,10 @@ public class KSPublic implements Protocol {
 		{
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			
-			MessageDigest md = MessageDigest.getInstance(Constants.DH_HASH_ALG);
+			MessageDigest md = MessageDigest.getInstance(CipherInfo.DH_HASH_ALG);
 			byte[] skhash = md.digest(sessionCipher.key.getEncoded());
 			
 			if (!server.userExists(BufferUtils.translateString(ctname)))

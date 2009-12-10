@@ -18,10 +18,17 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
 import utils.Password;
+import utils.constants.CipherInfo;
 import utils.cserver.CServer;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * A response to a log on request. Adds the a user to the active user map.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CSLogOn implements Protocol 
 {
 	protected byte[] name;
@@ -44,9 +51,9 @@ public class CSLogOn implements Protocol
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
-			MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+			MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			
 			if(pwd == null)
 			{
@@ -106,7 +113,13 @@ public class CSLogOn implements Protocol
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
-		catch (InvalidKeyException e) { e.printStackTrace(); } 
+		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { client.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		} 
 		return false;
 	}
 }

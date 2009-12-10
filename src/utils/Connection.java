@@ -3,18 +3,29 @@ package utils;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
 import javax.crypto.Mac;
 
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
+
+/**
+ * A structure for representation a connection between to clients.
+ * Used to watch the connection for incoming messages.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class Connection implements Runnable
 {
 	public Socket s;
 	public Mac hmac;
 	public CipherPair cipher;
-	private boolean open;
 	private String name;
 	
 	public Connection(Socket s, CipherPair cipher)
@@ -23,7 +34,7 @@ public class Connection implements Runnable
 		this.cipher = cipher;
 		try
 		{
-			hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(cipher.key);
 		}
 		catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
@@ -36,16 +47,19 @@ public class Connection implements Runnable
 	}
 	
 	public Connection() {}
-
-	public void close() { open = false; }
+	
 	public void setName(String name) { this.name = name; }
 	
+	
+	/**
+	 * Watch this connection until it is closed.
+	 */
 	public void run() 
 	{
 		try {
+			s.setSoTimeout(100);
 			DataInputStream in = new DataInputStream(s.getInputStream()); 
-			open = true;
-			while(open)
+			while(!s.isClosed())
 			{
 				try 
 				{
@@ -54,10 +68,13 @@ public class Connection implements Runnable
 					if(data != null) 
 						System.out.println(name + " says " + BufferUtils.translateString(data));
 				}
-				catch (IOException e) {
-					e.printStackTrace();
+				catch (SocketException e) { System.err.println(name + "'s socket closed."); }
+				catch (SocketTimeoutException e) {}
+				catch (IOException e) { e.printStackTrace(); }
+				catch (ConnectionClosedException e) 
+				{
+					s.close();
 				}
-
 			}
 		}
 		catch (IOException e) { e.printStackTrace(); }

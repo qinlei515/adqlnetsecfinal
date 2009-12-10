@@ -24,9 +24,15 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
-
+/**
+ * Attempts to add the specified user to the key server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class KSAddRequest implements Protocol
 {
 	MessageDigest pwdHasher;
@@ -43,11 +49,11 @@ public class KSAddRequest implements Protocol
 		try 
 		{
 			Cipher pwdCipher = 
-				Cipher.getInstance(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE);
-			this.pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+				Cipher.getInstance(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE);
+			this.pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 			byte[] privKeyKey = pwdHasher.digest(password.getBytes());
 			pwdCipher.init(Cipher.ENCRYPT_MODE, 
-					new SecretKeySpec(privKeyKey, 0, 16, Constants.SESSION_KEY_ALG));
+					new SecretKeySpec(privKeyKey, 0, 16, CipherInfo.SESSION_KEY_ALG));
 			byte[] iv = pwdCipher.getIV();
 			this.encryptedPrivateKey = Common.createMessage(iv, pwdCipher.doFinal(privKey.getEncoded()));
 			
@@ -67,7 +73,7 @@ public class KSAddRequest implements Protocol
 		{
 			DataOutputStream toServer = new DataOutputStream(server.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			sessionCipher.initEncrypt();
 			
@@ -106,7 +112,7 @@ public class KSAddRequest implements Protocol
 				byte[] pwdSalt = BufferUtils.concat(password.getBytes(), salt);
 				// TODO: Hash again to match the proposed protocol, now unnecessary.
 				byte[] pwdHash = 
-					MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM).digest(pwdSalt);
+					MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM).digest(pwdSalt);
 				byte[] pwdMac = hmac.doFinal(pwdHash);
 				byte[] encrPwdHash = sessionCipher.encrypt.doFinal(pwdHash);
 				toServer.write(Common.createMessage(encrPwdHash, pwdMac));
@@ -127,6 +133,12 @@ public class KSAddRequest implements Protocol
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
 		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		
 		return false;
 	}

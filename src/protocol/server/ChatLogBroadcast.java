@@ -11,12 +11,14 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.Ports;
 import utils.cserver.CServer;
 
 /**
  * A broadcast in name, not in implementation. Used to distribute changes in the
  * active user list to clients.
+ * 
+ * @author Alex Dubreuil
  */
 public class ChatLogBroadcast implements Protocol
 {
@@ -50,7 +52,7 @@ public class ChatLogBroadcast implements Protocol
 			System.out.println("Sending " + user + " log notification.");
 			try
 			{
-				s = new Socket(BufferUtils.translateIPAddress(activeUsers.get(user)), Constants.CHAT_NOTIFY_PORT);
+				s = new Socket(BufferUtils.translateIPAddress(activeUsers.get(user)), Ports.CHAT_NOTIFY_PORT);
 				new DataOutputStream(s.getOutputStream()).write(message);
 				s.close();
 			}

@@ -19,9 +19,16 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
 import utils.cserver.CServer;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Response to a CSAddRequest. Attempts to add the specified user to the chat server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CSAdd implements Protocol 
 {
 	byte[] name;
@@ -43,7 +50,7 @@ public class CSAdd implements Protocol
 			DataOutputStream toClient = new DataOutputStream(client.getOutputStream());
 			DataInputStream fromClient = new DataInputStream(client.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			
 			if(server.userExists(BufferUtils.translateString(name)))
@@ -58,7 +65,6 @@ public class CSAdd implements Protocol
 			byte[] salt = BufferUtils.random(2);
 			
 			{
-				
 				byte[] message = Common.createMessage(Requests.CONFIRM, name, salt);
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
 			}
@@ -72,7 +78,7 @@ public class CSAdd implements Protocol
 					System.err.println("Integrity check failed.");
 					return false;
 				}
-				MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+				MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 				byte[] pwd2Hash = pwdHasher.digest(pwdHash);
 				server.addUser(BufferUtils.translateString(name), pwd2Hash, salt);
 			}
@@ -88,7 +94,13 @@ public class CSAdd implements Protocol
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
-		catch (InvalidKeyException e) { e.printStackTrace(); } 
+		catch (InvalidKeyException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { client.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}		
+		} 
 		
 		return false;
 	}

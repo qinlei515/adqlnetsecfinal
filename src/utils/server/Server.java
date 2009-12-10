@@ -33,13 +33,20 @@ import javax.crypto.spec.SecretKeySpec;
 import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.constants.Keys;
+import utils.exceptions.ConnectionClosedException;
 
 /**
  * Stores critical data for a server, implements behavior common to all servers.
  */
 public class Server 
 {
+	public static final int CHALLENGE_BYTESIZE = 2;
+	//TODO: Make this an actual secret.
+	//TODO: Right after we implement the challenge that uses it.
+	public static final byte[] C_1_SECRET = "I know, you know".getBytes();
+	
 	protected int port;
 	public int getPort() { return port; }
 	
@@ -101,19 +108,6 @@ public class Server
 				this.primaryPub = (RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(keySpec);
 			}
 			catch(FileNotFoundException e) { System.err.println("Server key file: " + primaryPubFile + " not found."); }
-//			try
-//			{
-//				File keyFile = new File(secondaryFile);
-//				FileInputStream keyInFile = new FileInputStream(keyFile);
-//				DataInputStream keyIn = new DataInputStream(keyInFile);
-//				byte[] keyBytes = new byte[(int)keyFile.length()];
-//				keyIn.read(keyBytes);
-//				keyIn.close();
-//				keyInFile.close();
-//				PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-//				this.secondary = (RSAPrivateKey)KeyFactory.getInstance("RSA").generatePrivate(keySpec);
-//			}
-//			catch(FileNotFoundException e) { System.err.println("Server key file: " + secondaryFile + " not found."); }
 		} 
 		catch (IOException e) { e.printStackTrace(); } 
 		catch (InvalidKeySpecException e) { e.printStackTrace(); } 
@@ -134,13 +128,14 @@ public class Server
 			
 			ArrayList<byte[]> resp1 = Common.getResponse(fromClient);
 			byte[] clientKeyBytes = resp1.get(0);
-			if(!BufferUtils.equals(resp1.get(1), Constants.getKServerKeyHash()))
+			if(!BufferUtils.equals(resp1.get(1), Keys.getKServerKeyHash()))
 			{
 				//TODO: Run the key overwrite protocol.
 			}
 			// Send guess-the-number challenge
-			byte[] challengeNumber = BufferUtils.random(Constants.CHALLENGE_BYTESIZE);
-			toClient.write(Common.createMessage(createChallenge(challengeNumber)));
+			byte[] challengeNumber = BufferUtils.random(CHALLENGE_BYTESIZE);
+			ArrayList<byte[]> c = createChallenge(challengeNumber);
+			toClient.write(Common.createMessage(c.get(0), c.get(1)));
 			byte[] resp2 = Common.getResponse(fromClient).get(0);
 			if(!BufferUtils.equals(resp2, challengeNumber))
 			{
@@ -154,7 +149,7 @@ public class Server
 			// Create the server's DH key
 			// TODO: Reuse to decrease server load.
 			KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
-			dhGen.initialize(Constants.getDHParameters());
+			dhGen.initialize(Keys.getDHParameters());
 			
 			KeyPair kPair = dhGen.generateKeyPair();
 			
@@ -164,17 +159,17 @@ public class Server
 			ka.doPhase(clientDHKey, true);
 			
 			// Generates a 256-bit secret by default.
-			SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
+			SecretKey sessionKey = ka.generateSecret(CipherInfo.SESSION_KEY_ALG);
 			// Simplify it to a 128-bit key for compatibility.
 			// TODO: Is it secure to grab the first 16 bytes?
-			sessionKey = new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+			sessionKey = new SecretKeySpec(sessionKey.getEncoded(), 0, 16, CipherInfo.SESSION_KEY_ALG);
 			
 			// Sign & send to client
 			byte[] pubKeyBytes = kPair.getPublic().getEncoded();
 			byte[] signedHash = sign(pubKeyBytes);
 			
 			CipherPair sessionCipher = 
-				new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+				new CipherPair(CipherInfo.SESSION_KEY_ALG+CipherInfo.SESSION_KEY_MODE, sessionKey);
 			sessionCipher.initEncrypt();
 			byte[] iv = sessionCipher.encrypt.getIV();
 			byte[] auth = sessionCipher.encrypt.doFinal(clientKeyBytes);
@@ -190,7 +185,11 @@ public class Server
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); } 
 		catch (InvalidKeyException e) { e.printStackTrace(); } 
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
-		catch (BadPaddingException e) { e.printStackTrace(); }  
+		catch (BadPaddingException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) { 
+			try { client.close(); }
+			catch (IOException e1) { e1.printStackTrace(); } 
+		}  
 		// Return null if we escape the try
 		return null;
 	}
@@ -205,8 +204,13 @@ public class Server
 			byte[] challenge1 = calculateChallenge1(client);
 			toClient.write(challenge1);
 		}
-		byte[] response1 = Common.getResponse(fromClient).get(0);
-		return BufferUtils.equals(response1, calculateChallenge1(client));
+		try 
+		{	
+			byte[] response1 = Common.getResponse(fromClient).get(0);
+			return BufferUtils.equals(response1, calculateChallenge1(client));
+		}
+		catch (ConnectionClosedException e) { client.close(); }
+		return false;
 	}
 	
 	protected byte[] calculateChallenge1(Socket client)
@@ -215,8 +219,8 @@ public class Server
 		MessageDigest md;
 		try 
 		{
-			md = MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG);
-			md.update(BufferUtils.concat(cAddr, utils.kserver.KSConstants.C_1_SECRET));
+			md = MessageDigest.getInstance(CipherInfo.CHALLENGE_HASH_ALG);
+			md.update(BufferUtils.concat(cAddr, C_1_SECRET));
 			return md.digest();
 		} 
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
@@ -228,7 +232,7 @@ public class Server
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		try
 		{
-			answer.add(MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG).digest(number));
+			answer.add(MessageDigest.getInstance(CipherInfo.CHALLENGE_HASH_ALG).digest(number));
 		}
 		catch(NoSuchAlgorithmException e) { e.printStackTrace(); }
 		

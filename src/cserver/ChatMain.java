@@ -3,13 +3,16 @@ package cserver;
 import java.io.IOException;
 
 import utils.cserver.CServer;
-import utils.server.Server;
 
+/**
+ * Main class to start a chat server.
+ * 
+ * @author Alex Dubreuil
+ */
 public class ChatMain 
 {
 	public static void main(String[] args) throws IOException
 	{
-		Server s = new CServer();
-		s.run();
+		new CServer().run();
 	}
 }

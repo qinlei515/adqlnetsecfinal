@@ -17,8 +17,15 @@ import protocol.Requests;
 import utils.BufferUtils;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Client side of a client-server protocol. Attempt to add a user to the chat server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CSAddRequest implements Protocol 
 {
 	protected String name;
@@ -38,7 +45,7 @@ public class CSAddRequest implements Protocol
 			DataOutputStream toServer = new DataOutputStream(c.s.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(c.s.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(c.cipher.key);
 			c.cipher.initEncrypt();
 			
@@ -71,7 +78,7 @@ public class CSAddRequest implements Protocol
 				}
 				
 				byte[] pwdPlusSalt = BufferUtils.concat(password.getBytes(), salt);
-				MessageDigest pwdHasher = MessageDigest.getInstance(Constants.PWD_HASH_ALGORITHM);
+				MessageDigest pwdHasher = MessageDigest.getInstance(CipherInfo.PWD_HASH_ALGORITHM);
 				byte[] pwdHash = pwdHasher.digest(pwdPlusSalt);
 				byte[] pwdMac = hmac.doFinal(pwdHash);
 				byte[] encrPwd = c.cipher.encrypt.doFinal(pwdHash);
@@ -104,6 +111,12 @@ public class CSAddRequest implements Protocol
 		catch (InvalidKeyException e) { e.printStackTrace(); } 
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
 		catch (BadPaddingException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { c.s.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		
 		
 		return false;

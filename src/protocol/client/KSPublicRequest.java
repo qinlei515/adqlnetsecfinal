@@ -23,8 +23,15 @@ import utils.BufferUtils;
 import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
-import utils.Constants;
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
 
+/**
+ * Attempts to retrieve a user's public key from the key server.
+ * 
+ * @author Lei Qin, Alex Dubreuil
+ *
+ */
 public class KSPublicRequest implements Protocol {
 	
 	ClientUser user;
@@ -45,7 +52,7 @@ public class KSPublicRequest implements Protocol {
 			DataOutputStream toServer = new DataOutputStream(server.getOutputStream());
 			DataInputStream fromServer = new DataInputStream(server.getInputStream());
 			
-			Mac hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
+			Mac hmac = Mac.getInstance(CipherInfo.HMAC_SHA1_ALG);
 			hmac.init(sessionCipher.key);
 			sessionCipher.initEncrypt();
 			
@@ -71,7 +78,7 @@ public class KSPublicRequest implements Protocol {
 				}	
 				byte[] PublicKeyBytes = resp.get(1);
 				byte[] skhash = resp.get(2);
-				MessageDigest md = MessageDigest.getInstance(Constants.DH_HASH_ALG);
+				MessageDigest md = MessageDigest.getInstance(CipherInfo.DH_HASH_ALG);
 				byte[] skhashc =  md.digest(sessionCipher.key.getEncoded());
 				if(!BufferUtils.equals(skhashc, skhash))
 				{
@@ -90,6 +97,12 @@ public class KSPublicRequest implements Protocol {
 		catch (InvalidKeyException e) { e.printStackTrace(); } 
 		catch (IOException e) { e.printStackTrace(); }
 		catch (InvalidKeySpecException e) { e.printStackTrace(); }
+		catch (ConnectionClosedException e) {
+			try { server.close(); }
+			catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
 		return false;
 	}
 

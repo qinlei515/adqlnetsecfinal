@@ -6,6 +6,13 @@ import protocol.Protocol;
 import utils.CipherPair;
 import utils.Connection;
 
+/**
+ * Unimplemented. Response to a CSUpdate request, modifies the user's information on the
+ * chat server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class CSUpdate implements Protocol {
 
 	public boolean run(Connection c) { return run(c.s, c.cipher); }

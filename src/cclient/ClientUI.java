@@ -11,6 +11,11 @@ import protocol.client.ConnectionRequest;
 import utils.Common;
 import utils.Connection;
 
+/**
+ * The basic user interface. Accepts four commands: list, m|message, exit, help.
+ * 
+ * @author Alex Dubreuil
+ */
 public class ClientUI 
 {
 	protected ClientUser user;
@@ -81,6 +86,12 @@ public class ClientUI
 		}
 	}
 	
+	/**
+	 * Attempt to send message to name. Fails if name doesn't exist or isn't logged in.
+	 * 
+	 * @param name
+	 * @param message
+	 */
 	private void message(String name, String message)
 	{
 		Connection c = user.getConnection(name);

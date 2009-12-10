@@ -3,7 +3,6 @@ package utils;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -15,25 +14,36 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 
+import utils.constants.CipherInfo;
+import utils.exceptions.ConnectionClosedException;
+
+/**
+ * A bunch of functionality common to servers and clients.
+ * May still need some refactoring.
+ * 
+ * Some background:
+ * 
+ * We use a simple communication language. Each message starts with
+ * a two-byte representation of the number of components in the message, followed
+ * immediately by the first component.
+ * 
+ * Each component consists of a two-byte representation of the size of the component,
+ * followed by the data of a component.
+ * 
+ * Sometimes we have multiple layers of message wrapping within a communication -
+ * when using symmetric encryption, we typically turn the data into a message, 
+ * encrypt that message, and use that as a component in a new message.
+ * 
+ * Interpreting a message is left entirely to the Protocol handling it.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class Common 
 {
-
-	// Challenge 1: Prove we're here.
-	public static byte[] handleChallenge1(DataInputStream fromServer) throws IOException
-	{
-		return getResponseComponent(fromServer);
-	}
-
-	// Challenge 2: Guess-the-number
-	public static byte[] handleChallenge2(DataInputStream fromServer) throws NoSuchAlgorithmException, IOException
-	{
-		ArrayList<byte[]> resp = getResponse(fromServer);
-		byte[] number = new byte[resp.get(1).length];
-		BufferUtils.copy(resp.get(1), number, number.length);
-		Common.guessTheNumber(resp.get(0), number);
-		return createMessage(number);
-	}
-
+	/**
+	 * Read a single component from from.
+	 */
 	protected static byte[] getResponseComponent(DataInputStream from) throws IOException
 	{
 		int responseSize = BufferUtils.translate(from.read(), from.read());
@@ -42,13 +52,18 @@ public class Common
 		return response;
 	}
 
-	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException
+	/**
+	 * Read an entire message from from.
+	 * The message must follow the requirements outlined above or bad things happen.
+	 * @throws ConnectionClosedException 
+	 */
+	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException, ConnectionClosedException
 	{
 		int numComponents = BufferUtils.translate(from.read(), from.read());
 		if(numComponents == 65535)
 		{
 			System.err.println("Read -1 -1, connection closed at other end.");
-			return new ArrayList<byte[]>();
+			throw new ConnectionClosedException();
 		}
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		for(int i = 0; i < numComponents; i++)
@@ -58,6 +73,10 @@ public class Common
 		return answer;
 	}
 
+	/**
+	 * This functionality is built in to getResponse, but is necessary to split
+	 * encrypted message components after decrypting them.
+	 */
 	public static ArrayList<byte[]> splitResponse(byte[] resp)
 	{
 		int numComponents = BufferUtils.translate(resp[0], resp[1]);
@@ -74,6 +93,9 @@ public class Common
 		return answer;
 	}
 
+	/**
+	 * Turn the given components into a message meeting the requirements outlined above.
+	 */
 	public static byte[] createMessage(byte[]... components)
 	{
 		int messageLength = 0;
@@ -98,62 +120,14 @@ public class Common
 		return answer;
 	}
 
-	public static byte[] createMessage(ArrayList<byte[]> components)
-	{
-		int messageLength = 0;
-		for(int i = 0; i < components.size(); i++)
-			messageLength += (components.get(i).length + 2);
-
-		byte[] answer = new byte[messageLength+2];
-
-		// Start with the length of the message
-		BufferUtils.copy(BufferUtils.translate(components.size()), answer, 2);
-
-		int pos = 2;
-		for(int i = 0; i < components.size(); i++)
-		{
-			// Start each component with the length of that component
-			BufferUtils.copy(BufferUtils.translate(components.get(i).length), answer, 2, 0, pos);
-			pos += 2;
-			// Add the component itself
-			BufferUtils.copy(components.get(i), answer, components.get(i).length, 0, pos);
-			pos += components.get(i).length;
-		}
-		return answer;
-	}
-
-	public static void guessTheNumber(byte[] hash, byte[] given) throws NoSuchAlgorithmException
-	{
-		MessageDigest md = MessageDigest.getInstance(Constants.CHALLENGE_HASH_ALG);
-		md.update(given);
-		byte[] ourHash = md.digest();
-		boolean done = BufferUtils.equals(hash, ourHash);
-		while(!done)
-		{
-			plusOne(given);
-			md.update(given);
-			ourHash = md.digest();
-			done = BufferUtils.equals(hash, ourHash);
-		}
-	}
-
-	// Interpret number as an integer; add one to it.
-	public static void plusOne(byte[] number)
-	{
-		int i = 0;
-		while(number[i] == Byte.MAX_VALUE)
-		{
-			number[i] = 0;
-			i++;
-		}
-		number[i]++;
-	}
-
+	/**
+	 * Sign toSign using key.
+	 */
 	public static byte[] sign(byte[] toSign, RSAPrivateKey key)
 	{
 		try
         {
-    		Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
+    		Signature sig = Signature.getInstance(CipherInfo.SIGNATURE_ALG);
     		sig.initSign(key);
     		sig.update(toSign);
     		return sig.sign();
@@ -165,11 +139,14 @@ public class Common
         return null;
 	}
 	
+	/**
+	 * Verify that signed matches [message]key
+	 */
 	public static boolean verify(byte[] signed, byte[] message, RSAPublicKey key)
 	{
 		try
 		{
-			Signature sig = Signature.getInstance(Constants.SIGNATURE_ALG);
+			Signature sig = Signature.getInstance(CipherInfo.SIGNATURE_ALG);
 			sig.initVerify(key);
 			sig.update(message);
 			return sig.verify(signed);
@@ -182,6 +159,12 @@ public class Common
 		return false;
 	}
 
+	/**
+	 * Encrypt the given message with sessionCipher.encrypt.
+	 * Create a MAC for message.
+	 * 
+	 * @return A message (as defined above) containing the encrypted message and the MAC.
+	 */
 	public static byte[] wrapMessage(byte[] message, Mac hmac, CipherPair sessionCipher)
 	{
 		try 
@@ -195,6 +178,12 @@ public class Common
 		return null;
 	}
 
+	/**
+	 * Encrypt the given message with sessionCipher.encrypt
+	 * Create a MAC for the message.
+	 * 
+	 * @return A message (as defined above) containing iv, the encrypted message and the MAC.
+	 */
 	public static byte[] wrapMessage(byte[] message, byte[] iv, Mac hmac, CipherPair sessionCipher)
 	{
 		try 
@@ -231,8 +220,17 @@ public class Common
 		return null;
 	}
 
+	/**
+	 * Does mac ( = resp.get(0) ) match the decrypted message?
+	 * 
+	 * (Encrypted message = resp.get(1))
+	 * 
+	 */
 	public static byte[] checkIntegrity(ArrayList<byte[]> resp, Mac hmac, CipherPair sessionCipher)
 	{
-		return checkIntegrity(resp.get(0), resp.get(1), hmac, sessionCipher);
+		if(resp.size() == 2)
+			return checkIntegrity(resp.get(0), resp.get(1), hmac, sessionCipher);
+		else
+			return null;
 	}
 }

@@ -6,6 +6,12 @@ import protocol.Protocol;
 import utils.CipherPair;
 import utils.Connection;
 
+/**
+ * Unimplemented. Protocol for updating a user's information on the key server.
+ * 
+ * @author Alex Dubreuil
+ *
+ */
 public class KSUpdateRequest implements Protocol 
 {
 
