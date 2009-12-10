@@ -2,7 +2,6 @@ package protocol.client;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.net.Socket;
 import java.util.ArrayList;
 
 import cclient.ClientUser;
@@ -10,7 +9,6 @@ import cclient.ClientUser;
 import protocol.Protocol;
 import protocol.Requests;
 import utils.BufferUtils;
-import utils.CipherPair;
 import utils.Common;
 import utils.Connection;
 import utils.Constants;
@@ -32,7 +30,8 @@ public class ChatLogNotification implements Protocol
 				Common.getResponse(new DataInputStream(c.s.getInputStream()));
 			if(update.size() != 2) { return false; }
 			byte[] message = update.get(0);
-			byte[] mac = update.get(4);
+			byte[] mac = update.get(1);
+			
 			if(Common.verify(mac, message, Constants.getCServerPrimaryKey()))
 			{
 				update = Common.splitResponse(message);

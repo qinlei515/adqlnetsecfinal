@@ -249,7 +249,7 @@ public class Server
 			try 
 			{ 
 				Socket connection = getAccepter().accept();
-				new Thread(new ConnectionHandler(connection, this)).run();
+				new Thread(new ConnectionHandler(connection, this)).start();
 			} 
 			catch (IOException e) { e.printStackTrace(); }
 		}

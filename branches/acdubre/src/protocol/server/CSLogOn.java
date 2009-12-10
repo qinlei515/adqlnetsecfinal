@@ -83,8 +83,15 @@ public class CSLogOn implements Protocol
 					//TODO: Politely tell the user?
 					return false;
 				}
-				server.updateUser(BufferUtils.translateString(name), ipAddress);
+				// Alert everyone that a new user has logged in.
 				server.sequenceIncrement();
+				new ChatLogBroadcast(server,
+						BufferUtils.translateString(name),
+						ipAddress,
+						Requests.LOG_ON).run(null, null);
+				server.updateUser(BufferUtils.translateString(name), ipAddress);
+
+				// Give the user the current list of logged in users.
 				Map<String, byte[]> onlineUsers = server.getOnlineUsers();
 				for(String user : onlineUsers.keySet())
 				{
@@ -94,10 +101,7 @@ public class CSLogOn implements Protocol
 				}
 				message = Common.createMessage(Requests.LOG_OFF, server.sequence());
 				toClient.write(Common.wrapMessage(message, hmac, sessionCipher));
-				return new ChatLogBroadcast(server,
-						BufferUtils.translateString(name),
-						ipAddress,
-						Requests.LOG_ON).run(null, null);
+				return true;
 			}
 		} 
 		catch (IOException e) { e.printStackTrace(); } 

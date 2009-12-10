@@ -153,6 +153,7 @@ public class ClientUser
 	
 	protected Map<String, Connection> connections;
 	public Connection getConnection(String name) { return connections.get(name); }
+	public Map<String, Connection> connections() { return connections; }
 	public boolean addConnection(String name, Connection c)
 	{
 		if(!connections.containsKey(name))
@@ -431,5 +432,22 @@ public class ClientUser
 		catch (IllegalBlockSizeException e) { e.printStackTrace(); } 
 		catch (BadPaddingException e) { e.printStackTrace(); } 
 		return null;
+	}
+	public void chatLogOff() 
+	{
+		resetChatServer();
+		CipherPair cSessionCipher = authenticate(getChatServer(), Constants.getCServerPrimaryKey());
+		Protocol p = new CSLogOffRequest(userID, password, this);
+		boolean loggedOff = p.run(new Connection(getChatServer(), cSessionCipher));
+		if(loggedOff) { System.out.println("Successfully logged out from chat server."); }
+	}
+	public void closeConnections() 
+	{
+		for(String name : connections.keySet())
+		{
+			connections.get(name).close();
+			connections.remove(name);
+		}
+		
 	}
 }

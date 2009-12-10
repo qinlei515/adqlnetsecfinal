@@ -18,7 +18,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyAgreement;
 import javax.crypto.Mac;
@@ -54,26 +53,35 @@ public class ConnectionRequest implements Protocol
 	{
 		try 
 		{
+			if(destKey == null)
+			{
+				System.err.println("Cannot initiate connection: User " + destName + " does not have a public key.");
+				return false;
+			}
 			c.s = new Socket(user.getUsers().get(destName), Constants.MESSAGE_PORT);
 			DataOutputStream toDest = new DataOutputStream(c.s.getOutputStream());
 			DataInputStream fromDest = new DataInputStream(c.s.getInputStream());
 			
 			KeyPair kPair;
+			PublicKey ourDHKey;
 			PublicKey theirDHKey;
 			{
 				KeyPairGenerator dhGen = KeyPairGenerator.getInstance("DH");
 				dhGen.initialize(Constants.getDHParameters());
 				kPair = dhGen.generateKeyPair();
-				PublicKey ourPubKey = kPair.getPublic();
+				ourDHKey = kPair.getPublic();
 				
-				toDest.write(user.authenticateToClient(ourPubKey, destKey));
+				// A->B: {A, [ga mod p]prka}pkb
+				toDest.write(user.authenticateToClient(ourDHKey, destKey));
 			}
 			{
+				// B->A: {B, [gb mod p]prka}pka
 				ArrayList<byte[]> resp = Common.getResponse(fromDest);
 				resp = user.unwrapClientAuthMessage(resp);
 				byte[] name = resp.get(0);
 				byte[] dhPubKey = resp.get(1);
 				byte[] signed = resp.get(2);
+				System.out.println("Authenticating outgoing connection.");
 				if(!Common.verify(signed, dhPubKey, destKey) 
 						|| !BufferUtils.equals(name, destName.getBytes()))
 				{
@@ -92,20 +100,56 @@ public class ConnectionRequest implements Protocol
 				
 				// Generates a 256-bit secret by default.
 				SecretKey sessionKey = ka.generateSecret(Constants.SESSION_KEY_ALG);
-				Cipher cEncrypt = new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, 
-						new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG)).encrypt;
+				sessionKey = 
+					new SecretKeySpec(sessionKey.getEncoded(), 0, 16, Constants.SESSION_KEY_ALG);
+				
+				c.cipher = 
+					new CipherPair(Constants.SESSION_KEY_ALG+Constants.SESSION_KEY_MODE, sessionKey);
+				c.cipher.initEncrypt();
+				
 				c.hmac = Mac.getInstance(Constants.HMAC_SHA1_ALG);
 				c.hmac.init(sessionKey);
 				
-				c.cipher.initEncrypt();
-				byte[] iv = cEncrypt.getIV();
-				byte[] message = Common.createMessage(Requests.CONFIRM, 
+				byte[] iv = c.cipher.encrypt.getIV();
+				byte[] message = Common.createMessage(Requests.LOG_ON, 
 						user.getUserID().getBytes(), theirDHKey.getEncoded());
-				byte[] encrMessage = c.cipher.encrypt.doFinal(message);
-				toDest.write(Common.wrapMessage(encrMessage, iv, c.hmac, c.cipher));
-				resp = Common.getResponse(fromDest);
-				c.cipher = user.authenticateResponse(resp, kPair, destKey);
-				c.cipher.encrypt = cEncrypt;
+				
+				// Give the other side our IV
+				toDest.write(Common.wrapMessage(message, iv, c.hmac, c.cipher));
+			}
+			{
+				// Get the other side's IV
+				ArrayList<byte[]> resp = Common.getResponse(fromDest);
+				
+				byte[] iv = resp.get(0);
+				byte[] encrMessage = resp.get(1);
+				byte[] mac = resp.get(2);
+				
+				c.cipher.initDecrypt(iv);
+				byte[] message = c.cipher.decrypt.doFinal(encrMessage);
+				
+				if(!BufferUtils.equals(mac, c.hmac.doFinal(message)))
+				{
+					System.err.println("Request: Failed integrity check.");
+					return false;
+				}
+
+				resp = Common.splitResponse(message);
+				byte[] confirm = resp.get(0);
+				byte[] name = resp.get(1);
+				byte[] dhKey = resp.get(2);
+				
+				if(!BufferUtils.equals(confirm, Requests.CONFIRM)
+						|| !BufferUtils.equals(name, destName.getBytes())
+						|| !BufferUtils.equals(dhKey, ourDHKey.getEncoded()))
+				{
+					System.err.println("Request: Failed integrity check.");
+					return false;
+				}
+				user.addConnection(destName, c);
+				c.setName(destName);
+				new Thread(c).start();
+				return true;
 			}
 		}
 		catch (UnknownHostException e) { e.printStackTrace(); }

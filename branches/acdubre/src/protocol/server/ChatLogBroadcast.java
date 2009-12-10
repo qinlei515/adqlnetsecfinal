@@ -47,9 +47,10 @@ public class ChatLogBroadcast implements Protocol
 		Socket s;
 		for(String user : activeUsers.keySet())
 		{
+			System.out.println("Sending " + user + " log notification.");
 			try
 			{
-				s = new Socket(BufferUtils.translateIPAddress(activeUsers.get(user)), Constants.CHAT_SERVER_PORT);
+				s = new Socket(BufferUtils.translateIPAddress(activeUsers.get(user)), Constants.CHAT_NOTIFY_PORT);
 				new DataOutputStream(s.getOutputStream()).write(message);
 				s.close();
 			}

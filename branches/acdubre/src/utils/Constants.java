@@ -21,6 +21,8 @@ import javax.crypto.spec.DHParameterSpec;
 public class Constants 
 {
 	public static final int CHAT_SERVER_PORT = 6417;
+	public static final int CHAT_NOTIFY_PORT = 6418;
+	
 	public static final int KEY_SERVER_PORT = 6473;
 	public static final int MESSAGE_PORT = 7418;
 	

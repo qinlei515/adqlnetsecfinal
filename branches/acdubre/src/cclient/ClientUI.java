@@ -1,6 +1,7 @@
 package cclient;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -13,7 +14,10 @@ import utils.Connection;
 public class ClientUI 
 {
 	protected ClientUser user;
+	public ClientUser user() { return user; }
+	
 	protected boolean active;
+	public boolean active() { return active; }
 	
 	public ClientUI(ClientUser user) 
 	{ 
@@ -64,6 +68,8 @@ public class ClientUI
 			else if((command.equals("exit")))
 			{
 				System.out.println("Goodbye.");
+				user.chatLogOff();
+				user.closeConnections();
 				try { if(user.getChatServer() != null) user.getChatServer().close(); } 
 				catch (IOException e) { e.printStackTrace(); }
 				try { if(user.getKeyServer() != null) user.getKeyServer().close(); } 
@@ -86,7 +92,10 @@ public class ClientUI
 		}
 		try 
 		{
-			c.s.getOutputStream().write(Common.wrapMessage(message.getBytes(), c.hmac, c.cipher));
+			if(c == null)
+				System.err.println("Could not send message: Connection not available.");
+			else
+				new DataOutputStream(c.s.getOutputStream()).write(Common.wrapMessage(message.getBytes(), c.hmac, c.cipher));
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}

@@ -7,33 +7,31 @@ import protocol.client.ChatLogNotification;
 import protocol.client.ConnectionAccept;
 
 import utils.Constants;
-import cclient.ClientUser;
+import cclient.ClientUI;
 
 public class ClientServer 
 {
-	protected ClientUser user;
 	protected ServerMonitor chatServerUpdates;
 	protected ServerMonitor incomingMessages;
 	
-	public ClientServer(ClientUser user)
+	public ClientServer(ClientUI ui)
 	{
-		this.user = user;
 		try 
 		{ 
 			chatServerUpdates = 
-				new ServerMonitor(new ServerSocket(Constants.CHAT_SERVER_PORT), 
-						new ChatLogNotification(user));
+				new ServerMonitor(new ServerSocket(Constants.CHAT_NOTIFY_PORT), 
+						new ChatLogNotification(ui.user()), ui);
 			
 			incomingMessages = 
 				new ServerMonitor(new ServerSocket(Constants.MESSAGE_PORT), 
-						new ConnectionAccept(user));
+						new ConnectionAccept(ui.user()), ui);
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	public void run()
 	{
-		new Thread(chatServerUpdates).run();
-		new Thread(incomingMessages).run();
+		new Thread(chatServerUpdates).start();
+		new Thread(incomingMessages).start();
 	}
 }

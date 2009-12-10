@@ -45,6 +45,11 @@ public class Common
 	public static ArrayList<byte[]> getResponse(DataInputStream from) throws IOException
 	{
 		int numComponents = BufferUtils.translate(from.read(), from.read());
+		if(numComponents == 65535)
+		{
+			System.err.println("Read -1 -1, connection closed at other end.");
+			return new ArrayList<byte[]>();
+		}
 		ArrayList<byte[]> answer = new ArrayList<byte[]>();
 		for(int i = 0; i < numComponents; i++)
 		{
