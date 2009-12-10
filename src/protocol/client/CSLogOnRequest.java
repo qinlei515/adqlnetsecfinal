@@ -66,6 +66,7 @@ public class CSLogOnRequest implements Protocol
 					return false;
 				}
 				byte[] salt = resp.get(1);
+				thisUser.setSalt(salt);
 				
 				byte[] pwdPlusSalt = BufferUtils.concat(password.getBytes(), salt);
 				byte[] pwdHash = pwdHasher.digest(pwdPlusSalt);
