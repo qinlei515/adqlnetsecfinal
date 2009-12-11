@@ -1,6 +1,7 @@
 package cclient;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -268,15 +269,32 @@ public class ClientUser
 	// Get the user's password.
 	protected void promptForPassword()
 	{
-		BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 		boolean validPassword = false;
 		while(!validPassword)
 		{
 			System.out.println("Please enter your password:");
-			// TODO: Mask the password.
-			try { password = input.readLine(); } 
-			catch (IOException e) { e.printStackTrace(); }
-			// TODO: Add password validity tests.
+	
+			// Console will mask the password. 
+			// Doesn't work when running in Eclipse.
+			Console console = System.console();
+			if(console != null)
+			{
+				char[] password = console.readPassword("[%s]", ">");
+				// TODO: Store password more securely.
+				this.password = new String(password);
+			}
+			else
+			{
+				System.out.print(">");
+				try 
+				{
+					this.password = 
+						new BufferedReader(new InputStreamReader(System.in)).readLine();
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			validPassword = true;
 		}
 	}
