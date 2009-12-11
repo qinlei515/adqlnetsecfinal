@@ -4,6 +4,8 @@
 
 First, you can grab the executable jars from svn/builds/submit/ - if you prefer to execute the source directly, the main classes are cclient.ClientMain, cserver.ChatMain and pkserver.PKMain.
 
+In the directory you're running the servers and client, you'll need a keys directory, a sample of which is provided in branches/acdubre/keys. The client obviously only needs the public keys, each server needs its own keys, and everyone needs the Diffie-Hellman parameters. 
+
 Be sure to run both servers before running the client as the client will immediately attempt to connect when you run it.
 
 If you're running everything on the same system, no command line arguments are necessary. All three jars will run fine on one system, however, attempting to run more than one instance of the same server or of the client on one system will fail, as they all listen on the same ports.
