@@ -339,7 +339,7 @@ public class ClientUser
 			Console console = System.console();
 			if(console != null)
 			{
-				char[] password = console.readPassword("[%s]", ">");
+				char[] password = console.readPassword(">");
 				// TODO: Store password more securely.
 				this.password = new String(password);
 			}
