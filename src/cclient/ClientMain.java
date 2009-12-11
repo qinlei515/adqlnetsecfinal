@@ -67,7 +67,7 @@ public class ClientMain
 	
 	private static void printUsage(PrintStream out)
 	{
-		out.println("Usage: pikichat [options]");
+		out.println("Usage: java -jar qlad_client.jar [options]");
 		out.println(" options: ");
 		out.println("  -u, --user <user>: Set the user");
 		out.println("  -cs, --chat-server <server IP>: Set the chat server IP");

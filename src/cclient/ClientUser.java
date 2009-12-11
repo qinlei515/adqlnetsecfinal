@@ -59,7 +59,7 @@ import utils.exceptions.ConnectionClosedException;
  */
 public class ClientUser 
 {
-	
+	public static final String SERVER_CONFIG = "config/servers.txt";
 	public ClientUser()
 	{
 		connections = new TreeMap<String, Connection>();
@@ -79,7 +79,7 @@ public class ClientUser
 	 * configuration file, as specified by the application rules */
 	public void getServersConfig()
 	{
-		byte[] result = Common.readFromFile("src/cclient/Servers_Config.txt");
+		byte[] result = Common.readFromFile(SERVER_CONFIG);
 		String serverConfig = BufferUtils.translateString(result);
 		int beginIndex = 0, endIndex = 0;
 		
