@@ -82,7 +82,7 @@ public class ConnectionRequest implements Protocol
 				toDest.write(user.authenticateToClient(ourDHKey, destKey));
 			}
 			{
-				// B->A: {B, [gb mod p]prka}pka
+				// B->A: {B, [gb mod p]prkb}pka
 				ArrayList<byte[]> resp = Common.getResponse(fromDest);
 				resp = user.unwrapClientAuthMessage(resp);
 				byte[] name = resp.get(0);

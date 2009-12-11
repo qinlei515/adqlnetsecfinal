@@ -65,7 +65,7 @@ public class ClientUI
 				for(String uid : user.getUsers().keySet())
 					System.out.println(uid + " " + user.getUsers().get(uid));
 			}
-			else if((command.equals("send") || command.equals("m")))
+			else if(command.equals("send") || (command.equals("m") || command.equals("message")))
 			{
 				System.out.println("Sending " + target + " \"" + message + "\"");
 				message(target, message);
@@ -114,14 +114,12 @@ public class ClientUI
 	private void printHelp()
 	{
 		System.out.println("Commands: ");
-		System.out.println("  u, user <userID>: Set the current user.");
-		System.out.println("  cs, chat-server <chat server IP>: Set the chat server IP.");
-		System.out.println("  clogin: Login to the current chat server.");
-		System.out.println("  send, message <userID> <message>: Send a message to userID.");
-		System.out.println("  exit, logoff the user and exit the application.");
-		System.out.println("  ks, key-server <key server IP>: Set the key server IP.");
+		System.out.println("  list: List all users currently logged in to the system.");
+		System.out.println("  m, send, message <userID> <message>: Send a message to userID.");
+		System.out.println("  exit: Close all connections and end the program.");
+		System.out.println("Unimplemented: ");
 		System.out.println("  kgen: Generate a new public/private key pair.");
-		System.out.println("  kget: Retrieve the public/private key pair of the current user.");
 		System.out.println("  kset: Send the current public/private key pair to the key server.");
+		System.out.println("  pmod: Modify the user's password on both servers.");
 	}
 }
