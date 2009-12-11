@@ -1,0 +1,26 @@
+#summary How to setup and run this chat system.
+
+= Details =
+
+First, you can grab the executable jars from svn/builds/submit/ - if you prefer to execute the source directly, the main classes are cclient.ClientMain, cserver.ChatMain and pkserver.PKMain.
+
+Be sure to run both servers before running the client as the client will immediately attempt to connect when you run it.
+
+If you're running everything on the same system, no command line arguments are necessary. All three jars will run fine on one system, however, attempting to run more than one instance of the same server or of the client on one system will fail, as they all listen on the same ports.
+
+To run another user on any other machine, two command line arguments are necessary:
+
+-cs or --chat-server <chat server IP>
+-ks or --key-server <key server IP>
+
+Enter the IP address in standard a.b.c.d format.
+
+Be aware that the chat server will see a client running on the same machine as having IP address 127.0.0.1, so it won't be able to talk with outside clients - though it can talk to itself just fine.
+
+After getting everything running, it's all pretty self explanatory. 
+
+= Notes for testers =
+
+Note that the servers do not persist user data upon being shut down, and that the client does not deal well with asynchronous servers - e.g., a username that is in use on one server but not the other, so if one server crashes or is shut down, it's best to restart the other as well.
+
+The servers are relatively stable with a well-behaved client, but even so they react poorly to unexpected circumstances. I will be very surprised if there aren't a number of DoS type attacks against the server implementations based on sending bad data.
