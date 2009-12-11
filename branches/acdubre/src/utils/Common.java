@@ -44,6 +44,7 @@ import utils.exceptions.ConnectionClosedException;
 public class Common 
 {
 	
+	
 	/* Purpose:     read content from a specific file and write the content to a byte array 
 	 * Parameters:  file - a string that specify the path and name of the file from which
 	 *                     the content will be read 

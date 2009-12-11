@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.Console;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
@@ -73,6 +74,34 @@ public class ClientUser
 		System.out.println("keyServerPort:" + keyServerPort);
 		setChatServer(chatServerIP);
 		setKeyServer(keyServerIP);
+		try
+		 {
+			 FileInputStream fis = new FileInputStream("src/utils/cserver/RegisteredUsers.txt");
+			 DataInputStream dis = new DataInputStream(fis);
+			 BufferedReader br = new BufferedReader(new InputStreamReader(dis));
+			 
+			 String name;
+			 String hash2pwd;
+			 String salt;
+			 String pubKey;
+			 String encPrivKey;
+			 
+			 String oneline;
+			 
+			 while ((oneline = br.readLine()) != null) 
+			 {
+			      name = oneline;
+			      hash2pwd = br.readLine();
+			      salt = br.readLine();
+			      pubKey = br.readLine();
+			      encPrivKey = br.readLine();
+			      System.out.println(name);
+			 }
+			 
+			 dis.close();
+	//		 br.close();
+		 }
+		 catch (Exception e){e.printStackTrace();}
 	}
 	
 	/* read ip and port information of chat server and key server from a
