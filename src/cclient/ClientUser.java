@@ -1,6 +1,7 @@
 package cclient;
 
 import java.io.BufferedReader;
+
 import java.io.Console;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -48,7 +49,6 @@ import utils.Common;
 import utils.Connection;
 import utils.constants.CipherInfo;
 import utils.constants.Keys;
-import utils.constants.Ports;
 import utils.exceptions.ConnectionClosedException;
 
 /**
@@ -59,18 +59,47 @@ import utils.exceptions.ConnectionClosedException;
  */
 public class ClientUser 
 {
-	public static final String DEFAULT_CHAT_SERVER = "127.0.0.1";
-	public static final String DEFAULT_KEY_SERVER = "127.0.0.1"; 
 	
 	public ClientUser()
 	{
 		connections = new TreeMap<String, Connection>();
 		activeUsers = new TreeMap<String, String>();
 		UserPubKeys = new TreeMap<String, RSAPublicKey>();
-		chatServerIP = DEFAULT_CHAT_SERVER;
-		keyServerIP = DEFAULT_KEY_SERVER;
+		/* read server connection information from the configuration file */
+		getServersConfig();
+		System.out.println("chatServerIP:" + chatServerIP);
+		System.out.println("chatServerPort:" + chatServerPort);
+		System.out.println("keyServerIP:" + keyServerIP);
+		System.out.println("keyServerPort:" + keyServerPort);
 		setChatServer(chatServerIP);
 		setKeyServer(keyServerIP);
+	}
+	
+	/* read ip and port information of chat server and key server from a
+	 * configuration file, as specified by the application rules */
+	public void getServersConfig()
+	{
+		byte[] result = Common.readFromFile("src/cclient/Servers_Config.txt");
+		String serverConfig = BufferUtils.translateString(result);
+		int beginIndex = 0, endIndex = 0;
+		
+		beginIndex = serverConfig.indexOf("\"");
+		beginIndex += 1;
+		endIndex = serverConfig.indexOf(":", beginIndex);
+		chatServerIP = serverConfig.substring(beginIndex, endIndex);
+		
+		beginIndex = endIndex + 1;
+		endIndex = serverConfig.indexOf("\"", beginIndex);
+		chatServerPort = Integer.parseInt(serverConfig.substring(beginIndex, endIndex));
+		
+		beginIndex = serverConfig.indexOf("\"", endIndex+1);
+		beginIndex += 1;
+		endIndex = serverConfig.indexOf(":", beginIndex);
+		keyServerIP = serverConfig.substring(beginIndex, endIndex);
+		
+		beginIndex = endIndex + 1;
+		endIndex = serverConfig.indexOf("\"", beginIndex);
+		keyServerPort = Integer.parseInt(serverConfig.substring(beginIndex, endIndex));
 	}
 	
 	protected String password;
@@ -82,11 +111,12 @@ public class ClientUser
 	
 	protected Socket chatServer;
 	protected String chatServerIP;
+	protected int chatServerPort;
 	
 	public Socket getChatServer() { return chatServer; }
 	public void setChatServer(String chatServerIP) 
 	{ 
-		try { this.chatServer = new Socket(chatServerIP, Ports.CHAT_SERVER_PORT); } 
+		try { this.chatServer = new Socket(chatServerIP, chatServerPort); } 
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); } 
 	}
@@ -95,7 +125,7 @@ public class ClientUser
 	{
 		try { chatServer.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
-		try { chatServer = new Socket(chatServerIP, Ports.CHAT_SERVER_PORT); }
+		try { chatServer = new Socket(chatServerIP, chatServerPort); }
 		catch (UnknownHostException e) { e.printStackTrace(); }
 		catch (IOException e) { e.printStackTrace(); }
 	}
@@ -103,11 +133,12 @@ public class ClientUser
 	
 	protected Socket keyServer;
 	protected String keyServerIP;
+	protected int keyServerPort;
 	
 	public Socket getKeyServer() { return keyServer; }
 	public void setKeyServer(String keyServerIP) 
 	{ 	
-		try { this.keyServer = new Socket(keyServerIP, Ports.KEY_SERVER_PORT); } 
+		try { this.keyServer = new Socket(keyServerIP, keyServerPort); } 
 		catch (UnknownHostException e) { System.err.println(e.getMessage() + "\n"); } 
 		catch (IOException e) { System.err.println(e.getMessage() + "\n"); }
 	}
@@ -116,7 +147,7 @@ public class ClientUser
 	{
 		try { keyServer.close(); } 
 		catch (IOException e) { e.printStackTrace(); }
-		try { keyServer = new Socket(keyServerIP, Ports.KEY_SERVER_PORT); }
+		try { keyServer = new Socket(keyServerIP, keyServerPort); }
 		catch (UnknownHostException e) { e.printStackTrace(); }
 		catch (IOException e) { e.printStackTrace(); }
 	}

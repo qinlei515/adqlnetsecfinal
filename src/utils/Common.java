@@ -1,6 +1,8 @@
 package utils;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -41,6 +43,30 @@ import utils.exceptions.ConnectionClosedException;
  */
 public class Common 
 {
+	
+	/* Purpose:     read content from a specific file and write the content to a byte array 
+	 * Parameters:  file - a string that specify the path and name of the file from which
+	 *                     the content will be read 
+	 * Returns:     the byte array that to which the content of file was written */
+	public static byte[] readFromFile(String file){
+		byte[] result = null;
+		try{
+			FileInputStream fis = new FileInputStream(file);	
+			int byteNum = fis.available();
+			BufferedInputStream bis = new BufferedInputStream(fis);
+			DataInputStream dis = new DataInputStream(bis);
+			result = new byte[byteNum];
+			dis.read(result);
+			fis.close();
+			bis.close();
+			dis.close();
+		}
+		catch (Exception e) { System.out.println(e); }
+		return result; 
+	}
+
+	
+	
 	/**
 	 * Read a single component from from.
 	 */
