@@ -51,7 +51,7 @@ public class CServer extends Server
 	public void addUserToFile(String name, byte[] hash2pwd, byte[] salt)
 	{
 		try{
-			FileOutputStream outputFile = new FileOutputStream("src/utils/cserver/RegisteredUsers.txt", true);
+			FileOutputStream outputFile = new FileOutputStream(USERS_FILE, true);
 			DataOutputStream output = new DataOutputStream(outputFile);
 
 			byte[] user = Common.createMessage(name.getBytes(), hash2pwd, salt);
