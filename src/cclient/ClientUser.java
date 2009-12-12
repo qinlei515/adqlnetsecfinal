@@ -312,7 +312,15 @@ public class ClientUser
 			{
 				char[] password = console.readPassword(">");
 				// TODO: Store password more securely.
-				this.password = new String(password);
+				
+				/* check for weak password */
+				if(checkWeakPassword(new String(password)) == true)
+				{
+					validPassword = true;
+					this.password = new String(password);
+				}
+				else
+					validPassword = false;
 			}
 			else
 			{
@@ -325,9 +333,63 @@ public class ClientUser
 				catch (IOException e) {
 					e.printStackTrace();
 				}
+				
+				/* check for weak password */
+				if(checkWeakPassword(this.password) == true)
+				{
+					validPassword = true;
+				}
+				else
+					validPassword = false;
 			}
-			validPassword = true;
 		}
+	}
+	
+	/* Prevent WEAK PASSWORD, check the strength of the password user entered.
+	 * The rule is: must be longer than 8 characters; must be combination of
+	 * numbers and characters/symbols; must not contain username as a part. 
+	 * Return value true is good, false is not good */
+	public boolean checkWeakPassword(String password)
+	{
+		/* check length of password */
+		if (password.length() < 8)
+		{
+			System.err.println("sorry, the password need to be equal or longer" +
+					"than 8 characters.");
+			return false;
+		}
+		
+		/* check the rule: password must contain both numbers and characters/symbols */
+		int con1, con2;
+		if((int)password.charAt(0) >= 48 && (int)password.charAt(0) <= 57)
+			con1 = 0;
+		else
+			con1 = 1;
+		int i;
+		for (i = 1; i < password.length(); i ++)
+		{
+			if((int)password.charAt(i) >= 48 && (int)password.charAt(i) <= 57)
+				con2 = 0;
+			else 
+				con2 = 1;
+			if(con1 != con2)
+				break;		
+		}
+		if (i == password.length())
+		{
+			System.err.println("sorry, the password need to contain both numbers" +
+			"and characters/symbols");
+			return false;
+		}
+		
+		/* check whether the password contain username as a part */
+		if (password.indexOf(userID) != -1)
+		{
+			System.err.println("sorry, the password cannot contain your username" +
+			"as a part");
+			return false;
+		}
+		return true;
 	}
 	
 	// Generate a fresh RSA key for a new user.
