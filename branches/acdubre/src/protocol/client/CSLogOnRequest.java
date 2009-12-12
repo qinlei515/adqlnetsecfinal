@@ -107,7 +107,6 @@ public class CSLogOnRequest implements Protocol
 					{
 						moreUsers = false;
 						thisUser.setSequence(resp.get(1));
-						thisUser.incrementSequence();
 					}
 				}
 				return true;

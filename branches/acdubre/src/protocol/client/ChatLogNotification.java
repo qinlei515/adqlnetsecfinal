@@ -2,6 +2,7 @@ package protocol.client;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import cclient.ClientUser;
@@ -25,14 +26,17 @@ import utils.exceptions.ConnectionClosedException;
 public class ChatLogNotification implements Protocol 
 {
 	ClientUser user;
+	PrintStream out;
 	
-	public ChatLogNotification(ClientUser user)
+	public ChatLogNotification(ClientUser user, PrintStream out)
 	{
 		this.user = user;
+		this.out = out;
 	}
 	
 	public boolean run(Connection c) 
 	{
+		out.println("Starting chat log notification monitor.");
 		try 
 		{
 			ArrayList<byte[]> update = 
@@ -50,19 +54,29 @@ public class ChatLogNotification implements Protocol
 				byte[] ip = update.get(2);
 				byte[] sequence = update.get(3);
 				
+				out.println("Log notification:");
 				if(BufferUtils.equals(sequence, user.sequence()))
 				{
 					if(BufferUtils.equals(event, Requests.LOG_ON))
 					{
-						user.addUser(BufferUtils.translateString(name), 
+						out.println(new String(name) + " has logged on.");
+						user.addUser(new String(name), 
 								BufferUtils.translateIPAddress(ip));
 						user.incrementSequence();
 					}
 					else if(BufferUtils.equals(event, Requests.LOG_OFF))
 					{
-						user.removeUser(BufferUtils.translateString(name));
+						out.println(new String(name) + " has logged out.");
+						user.removeUser(new String(name));
 						user.incrementSequence();
 					}
+				}
+				else
+				{
+					out.println("Bad sequence number:");
+					BufferUtils.println(sequence);
+					out.println("Expected:");
+					BufferUtils.println(user.sequence());
 				}
 			}
 		}

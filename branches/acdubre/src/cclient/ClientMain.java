@@ -20,7 +20,6 @@ public class ClientMain
 		
 		c.initialize();
 		s.run();
-		
 		ui.run();
 	}
 	
