@@ -65,6 +65,12 @@ public class ConnectionRequest implements Protocol
 				System.err.println("Cannot initiate connection: User " + destName + " does not have a public key.");
 				return false;
 			}
+			String destIP = user.getUsers().get(destName);
+			if(destIP == null)
+			{
+				System.err.println("Cannot initiate connection: User " + destName + " is not logged in.");
+				return false;
+			}
 			c.s = new Socket(user.getUsers().get(destName), Ports.MESSAGE_PORT);
 			DataOutputStream toDest = new DataOutputStream(c.s.getOutputStream());
 			DataInputStream fromDest = new DataInputStream(c.s.getInputStream());

@@ -28,7 +28,7 @@ public class ClientServer
 		{ 
 			chatServerUpdates = 
 				new ServerMonitor(new ServerSocket(Ports.CHAT_NOTIFY_PORT), 
-						new ChatLogNotification(ui.user()), ui);
+						new ChatLogNotification(ui.user(), System.out), ui);
 			
 			incomingMessages = 
 				new ServerMonitor(new ServerSocket(Ports.MESSAGE_PORT), 
@@ -39,6 +39,7 @@ public class ClientServer
 	
 	public void run()
 	{
+		System.out.println("Starting client monitors.");
 		new Thread(chatServerUpdates).start();
 		new Thread(incomingMessages).start();
 	}

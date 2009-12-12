@@ -27,6 +27,8 @@ public class ClientUI
 	public ClientUI(ClientUser user) 
 	{ 
 		this.user = user; 
+		// Must be set before running, otherwise the ClientServer fails on Linux.
+		active = true;
 	}
 	
 	public void run()
@@ -61,7 +63,6 @@ public class ClientUI
 			
 			if((command.equals("list")))
 			{
-				System.out.println("Currently logged in users:");
 				for(String uid : user.getUsers().keySet())
 					System.out.println(uid + " " + user.getUsers().get(uid));
 			}
