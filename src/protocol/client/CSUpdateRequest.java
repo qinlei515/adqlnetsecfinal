@@ -8,8 +8,6 @@ import utils.Connection;
 
 /**
  * Unimplemented. A protocol for updating a user's information on the chat server. 
- * 
- * @author Alex Dubreuil
  *
  */
 public class CSUpdateRequest implements Protocol {

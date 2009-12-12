@@ -24,8 +24,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Response to a log of request. Removes the user from the active user map.
- * 
- * @author Lei Qin, Alex Dubreuil
  *
  */
 public class CSLogOff implements Protocol {

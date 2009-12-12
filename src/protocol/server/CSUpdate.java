@@ -9,8 +9,6 @@ import utils.Connection;
 /**
  * Unimplemented. Response to a CSUpdate request, modifies the user's information on the
  * chat server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CSUpdate implements Protocol {

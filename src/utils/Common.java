@@ -21,7 +21,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * A bunch of functionality common to servers and clients.
- * May still need some refactoring.
  * 
  * Some background:
  * 
@@ -37,8 +36,6 @@ import utils.exceptions.ConnectionClosedException;
  * encrypt that message, and use that as a component in a new message.
  * 
  * Interpreting a message is left entirely to the Protocol handling it.
- * 
- * @author Alex Dubreuil
  *
  */
 public class Common 

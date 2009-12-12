@@ -22,8 +22,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Client side of a client-server protocol. Attempt to add a user to the chat server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CSAddRequest implements Protocol 

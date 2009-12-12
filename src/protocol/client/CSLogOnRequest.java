@@ -25,8 +25,6 @@ import utils.exceptions.ConnectionClosedException;
 /**
  * Client side of a client-server protocol. Attempts to log the specified user off 
  * from the chat server.
- * 
- * @author Alex Dubreuil, Lei Qin
  *
  */
 public class CSLogOnRequest implements Protocol 

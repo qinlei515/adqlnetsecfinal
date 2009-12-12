@@ -25,8 +25,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * A response to a log on request. Adds the a user to the active user map.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CSLogOn implements Protocol 

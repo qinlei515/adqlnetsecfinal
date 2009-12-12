@@ -25,8 +25,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Response to a CSAddRequest. Attempts to add the specified user to the chat server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CSAdd implements Protocol 

@@ -7,7 +7,6 @@ import utils.cserver.CServer;
 /**
  * Main class to start a chat server.
  * 
- * @author Alex Dubreuil
  */
 public class ChatMain 
 {

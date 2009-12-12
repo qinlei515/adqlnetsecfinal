@@ -29,8 +29,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Attempts to add the specified user to the key server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class KSAddRequest implements Protocol

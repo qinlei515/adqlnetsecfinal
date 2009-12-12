@@ -8,7 +8,6 @@ import utils.client.ClientServer;
  * The main class for the client code. Processes the command line, initializes necessary
  * settings, sets up the UI.
  * 
- * @author Alex Dubreuil
  */
 public class ClientMain 
 {

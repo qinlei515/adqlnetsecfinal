@@ -55,7 +55,6 @@ import utils.exceptions.ConnectionClosedException;
  * Information and behaviors of a client. Primarily stores keys, server connections
  * and client-client connections.
  * 
- * @author Alex Dubreuil, Lei Qin
  */
 public class ClientUser 
 {

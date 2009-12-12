@@ -6,8 +6,6 @@ package protocol;
  * Used primarily by servers to determine what type of request they've received,
  * but are used on the client side as well, to distinguish traffic direction when
  * setting up client-client connections and when receiving chat log notifications.
- * 
- * @author Alex Dubreuil
  *
  */
 public class Requests 

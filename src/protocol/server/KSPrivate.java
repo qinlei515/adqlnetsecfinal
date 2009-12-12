@@ -23,8 +23,6 @@ import utils.kserver.KServer;
 
 /**
  * Response to a KSPrivateRequest. Retrieves a user's private key.
- * 
- * @author Alex Dubreuil
  *
  */
 public class KSPrivate implements Protocol 

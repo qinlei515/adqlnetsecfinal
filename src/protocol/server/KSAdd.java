@@ -26,8 +26,6 @@ import utils.kserver.UserKeyData;
 
 /**
  * Response to a KSAddRequest. Adds a user to the key server.
- * 
- * @author Alex Dubreuil
  */
 public class KSAdd implements Protocol 
 {

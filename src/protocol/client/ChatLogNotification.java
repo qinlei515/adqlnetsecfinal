@@ -19,8 +19,6 @@ import utils.exceptions.ConnectionClosedException;
  * Client side of a client-server protocol, used to handle a chat log notification.
  * 
  * Either adds or removes a specified user from the active users map.
- * 
- * @author Alex Dubreuil
  *
  */
 public class ChatLogNotification implements Protocol 

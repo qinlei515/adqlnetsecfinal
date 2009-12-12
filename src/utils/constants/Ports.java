@@ -4,8 +4,6 @@ package utils.constants;
  * Ports information that for chat server and key server to read.
  * Client program will not use this file, instead it will read server configuration
  * information from a txt file at client side.
- * 
- * @author Alex Dubreuil
  *
  */
 public class Ports 

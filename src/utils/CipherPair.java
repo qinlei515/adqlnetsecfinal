@@ -14,8 +14,6 @@ import javax.crypto.spec.IvParameterSpec;
  * Used in two-way communication - each side stores their 
  * encrypt algorithm, matched by the other side's decrypt algorithm, 
  * and vice versa.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CipherPair 
