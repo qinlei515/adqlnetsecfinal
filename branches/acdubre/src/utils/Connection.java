@@ -17,8 +17,6 @@ import utils.exceptions.ConnectionClosedException;
 /**
  * A structure for representation a connection between to clients.
  * Used to watch the connection for incoming messages.
- * 
- * @author Alex Dubreuil
  *
  */
 public class Connection implements Runnable

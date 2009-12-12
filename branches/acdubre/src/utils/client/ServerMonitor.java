@@ -12,8 +12,6 @@ import protocol.Protocol;
 
 /**
  * Watches for a specific type of incoming connection for a client.
- * 
- * @author Alex Dubreuil
  *
  */
 public class ServerMonitor implements Runnable

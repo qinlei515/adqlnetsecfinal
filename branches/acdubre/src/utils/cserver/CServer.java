@@ -21,8 +21,6 @@ import utils.server.Server;
 /**
  * Specialized server that deals with where users are (IP addresses), which
  * users are available to chat, and informing clients of the same.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CServer extends Server

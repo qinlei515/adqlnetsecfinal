@@ -31,8 +31,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Attempts to retrieve the specified user's private key from the key server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class KSPrivateRequest implements Protocol 

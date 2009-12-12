@@ -21,8 +21,6 @@ import utils.kserver.KServer;
 /**
  * Response to a KSPublic request (you're sensing a pattern, aren't you?).
  * Retrieves a user's public key.
- * 
- * @author Alex Dubreuil
  *
  */
 public class KSPublic implements Protocol {

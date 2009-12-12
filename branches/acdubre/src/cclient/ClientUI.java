@@ -14,7 +14,6 @@ import utils.Connection;
 /**
  * The basic user interface. Accepts four commands: list, m|message, exit, help.
  * 
- * @author Alex Dubreuil
  */
 public class ClientUI 
 {

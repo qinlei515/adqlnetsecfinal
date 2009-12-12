@@ -18,7 +18,6 @@ import utils.cserver.CServer;
  * A broadcast in name, not in implementation. Used to distribute changes in the
  * active user list to clients.
  * 
- * @author Alex Dubreuil
  */
 public class ChatLogBroadcast implements Protocol
 {

@@ -39,8 +39,6 @@ import utils.exceptions.ConnectionClosedException;
  * 
  * Adds a Connection to this user's connections map that matches the Connection
  * set up by the Requesting client.
- * 
- * @author Alex Dubreuil
  *
  */
 public class ConnectionAccept implements Protocol 

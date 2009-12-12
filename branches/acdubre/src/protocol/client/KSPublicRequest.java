@@ -28,8 +28,6 @@ import utils.exceptions.ConnectionClosedException;
 
 /**
  * Attempts to retrieve a user's public key from the key server.
- * 
- * @author Lei Qin, Alex Dubreuil
  *
  */
 public class KSPublicRequest implements Protocol {

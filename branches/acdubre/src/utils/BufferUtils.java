@@ -2,8 +2,6 @@ package utils;
 
 /**
  * A collection of byte array utilities.
- * 
- * @author Alex Dubreuil
  *
  */
 public class BufferUtils 

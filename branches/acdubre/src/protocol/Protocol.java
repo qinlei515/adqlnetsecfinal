@@ -5,7 +5,6 @@ import utils.Connection;
 /**
  * Interface for all requests, client-client and client-server.
  * 
- * @author Alex Dubreuil
  */
 public interface Protocol 
 {

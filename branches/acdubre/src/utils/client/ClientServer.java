@@ -11,8 +11,6 @@ import cclient.ClientUI;
 
 /**
  * Runs the Client's server-like behavior.
- * 
- * @author Alex Dubreuil
  *
  */
 public class ClientServer 

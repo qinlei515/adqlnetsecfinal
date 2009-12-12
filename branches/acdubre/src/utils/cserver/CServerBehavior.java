@@ -30,8 +30,6 @@ import utils.server.ServerBehavior;
 
 /**
  * Handles behavior specific to a chat server.
- * 
- * @author Alex Dubreuil
  *
  */
 public class CServerBehavior implements ServerBehavior 
