@@ -10,4 +10,6 @@ If you want to create local servers, grab the Test build.zip download - this inc
 
 You'll need to modify config/servers.txt - point the IP addresses to wherever you're running your servers, and start both servers (qlad_kserver.jar and qlad_cserver.jar) before running the client. Don't change the ports, they are not configurable in the servers.
 
+We recommend setting up the live installation on your virtual lab machines(s), and leaving that config/servers.txt alone, and keeping separate the test copy for working with your own servers.
+
 No credentials are included with the test build, nor are there any initial credentials on the live server. You will be prompted for a user name when you start the client, choose a new one and say "n" when asked if you've used it before to create a new set of credentials.
