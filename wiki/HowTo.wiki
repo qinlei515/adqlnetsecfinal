@@ -1,28 +1,13 @@
 #summary How to setup and run this chat system.
 
-= Details =
+= For Network Security folks =
 
-First, you can grab the executable jars from svn/builds/submit/ - if you prefer to execute the source directly, the main classes are cclient.ClientMain, cserver.ChatMain and pkserver.PKMain.
+If you're testing our "live" server, located on 10.0.0.2 on the virtual network, you'll want the Live server build.zip download - this includes the public keys that are in use on those servers.
 
-In the directory you're running the servers and client, you'll need a keys directory, a sample of which is provided in branches/acdubre/keys. The client obviously only needs the public keys, each server needs its own keys, and everyone needs the Diffie-Hellman parameters. 
+You should be able to extract everything and run qlad_client.jar from the command line (java -jar qlad_client.jar, for those not Java inclined) without modifying settings. This will obviously only work from within the virtual network.
 
-Be sure to run both servers before running the client as the client will immediately attempt to connect when you run it.
+If you want to create local servers, grab the Test build.zip download - this includes an entire setup, including sample server keys and a set of Diffie-Hellman parameters. The DH parameter generator is not included, but the format of the file is straightforward: print DHParameterSpec.getP() on one line, then pring DHParameterSpec.getG() on a new line.
 
-If you're running everything on the same system, no command line arguments are necessary. All three jars will run fine on one system, however, attempting to run more than one instance of the same server or of the client on one system will fail, as they all listen on the same ports.
+You'll need to modify config/servers.txt - point the IP addresses to wherever you're running your servers, and start both servers (qlad_kserver.jar and qlad_cserver.jar) before running the client. Don't change the ports, they are not configurable in the servers.
 
-To run another user on any other machine, two command line arguments are necessary:
-
--cs or --chat-server <chat server IP>
--ks or --key-server <key server IP>
-
-Enter the IP address in standard a.b.c.d format.
-
-Be aware that the chat server will see a client running on the same machine as having IP address 127.0.0.1, so it won't be able to talk with outside clients - though it can talk to itself just fine.
-
-After getting everything running, it's all pretty self explanatory. 
-
-= Notes for testers =
-
-Note that the servers do not persist user data upon being shut down, and that the client does not deal well with asynchronous servers - e.g., a username that is in use on one server but not the other, so if one server crashes or is shut down, it's best to restart the other as well.
-
-The servers are relatively stable with a well-behaved client, but even so they react poorly to unexpected circumstances. I will be very surprised if there aren't a number of DoS type attacks against the server implementations based on sending bad data.
+No credentials are included with the test build, nor are there any initial credentials on the live server. You will be prompted for a user name when you start the client, choose a new one and say "n" when asked if you've used it before to create a new set of credentials.
